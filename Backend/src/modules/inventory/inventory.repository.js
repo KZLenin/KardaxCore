@@ -29,7 +29,24 @@ const crearCategoria = async (categoria) => {
   return data;
 };
 
+const obtenerCategorias = async () => {
+  const { data, error } = await supabase.from('categorias').select('*');
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+const obtenerProveedores = async () => {
+  const { data, error } = await supabase.from('proveedores').select('*');
+  if (error) throw new Error(error.message);
+  return data;
+};
+const crearProveedor = async (proveedor) => {
+  const { data, error } = await supabase.from('proveedores').insert([proveedor]).select().single();
+  if (error) throw new Error(error.message);
+  return data;
+};
+
 module.exports = {
-  crearItemKardex,
-  crearCategoria,
+  crearItemKardex, crearCategoria, crearProveedor,
+  obtenerCategorias, obtenerProveedores,
 };

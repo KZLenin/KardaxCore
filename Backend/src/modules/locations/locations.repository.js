@@ -18,6 +18,28 @@ const crearSede = async (sede) => {
   return data;
 };
 
+const obtenerPaises = async () => {
+  const { data, error } = await supabase.from('paises').select('*');
+  if (error) throw new Error(`Error BD: ${error.message}`);
+  return data;
+};
+
+const obtenerCiudades = async () => {
+  // Con Supabase podemos traer el nombre del país en la misma consulta (JOIN)
+  const { data, error } = await supabase.from('ciudades').select('*, paises(nombre)');
+  if (error) throw new Error(`Error BD: ${error.message}`);
+  return data;
+};
+
+const obtenerSedes = async () => {
+  const { data, error } = await supabase.from('sedes').select('*, ciudades(nombre, paises(nombre))');
+  if (error) throw new Error(`Error BD: ${error.message}`);
+  return data;
+};
 
 
-module.exports = { crearPais, crearCiudad, crearSede };
+
+module.exports = { 
+  crearPais, crearCiudad, crearSede,
+  obtenerPaises, obtenerCiudades, obtenerSedes 
+};

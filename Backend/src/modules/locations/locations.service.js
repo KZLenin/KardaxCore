@@ -25,4 +25,11 @@ const registrarSede = async (datos) => {
   });
 };
 
-module.exports = { registrarPais, registrarCiudad, registrarSede };
+const listarPaises = async () => await repository.obtenerPaises();
+const listarCiudades = async () => await repository.obtenerCiudades();
+const listarSedes = async () => await repository.obtenerSedes();
+
+module.exports = { 
+  registrarPais, registrarCiudad, registrarSede,
+  listarPaises, listarCiudades, listarSedes 
+};

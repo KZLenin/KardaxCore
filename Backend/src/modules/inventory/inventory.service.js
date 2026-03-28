@@ -25,7 +25,10 @@ const registrarCategoria = async (datos) => {
   });
 };
 
+const listarCategorias = async () => await inventoryRepository.obtenerCategorias();
+const listarProveedores = async () => await inventoryRepository.obtenerProveedores();
+
 module.exports = {
-  registrarEntrada,
-  registrarCategoria
+  registrarEntrada, registrarCategoria,
+  listarCategorias, listarProveedores,
 };

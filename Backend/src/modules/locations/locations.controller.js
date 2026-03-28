@@ -27,4 +27,22 @@ const crearSede = async (req, res) => {
   }
 };
 
-module.exports = { crearPais, crearCiudad, crearSede };
+const getPaises = async (req, res) => {
+  try { res.status(200).json(await service.listarPaises()); } 
+  catch (error) { res.status(400).json({ error: error.message }); }
+};
+
+const getCiudades = async (req, res) => {
+  try { res.status(200).json(await service.listarCiudades()); } 
+  catch (error) { res.status(400).json({ error: error.message }); }
+};
+
+const getSedes = async (req, res) => {
+  try { res.status(200).json(await service.listarSedes()); } 
+  catch (error) { res.status(400).json({ error: error.message }); }
+};
+
+module.exports = { 
+  crearPais, crearCiudad, crearSede, 
+  getPaises, getCiudades, getSedes
+};

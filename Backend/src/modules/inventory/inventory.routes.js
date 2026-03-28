@@ -2,13 +2,16 @@ const express = require('express');
 const router = express.Router();
 const inventoryController = require('./inventory.controller');
 
-// Definimos que cuando alguien haga un POST a esta ruta, el controlador se haga cargo
-// La ruta completa será: POST /api/inventory/entrada
-router.post('/entrada', inventoryController.registrarEntrada);
-router.post('/categorias', inventoryController.crearCategoria);
+// Importamos a nuestro guardia
+const { protegerRuta, soloRol } = require('../../core/middlewares/auth.middleware');
 
-// En el futuro, aquí agregaremos más rutas, como:
-// router.get('/listar', inventoryController.listarKardex);
-// router.post('/salida', inventoryController.registrarSalida);
+
+
+router.post('/entrada', protegerRuta, soloRol('LOGISTICA'), inventoryController.registrarEntrada);
+router.post('/categorias', protegerRuta, soloRol('ADMIN'), inventoryController.crearCategoria);
+router.post('/proveedores', protegerRuta, inventoryController.registrarProveedor);
+
+router.get('/categorias', protegerRuta, inventoryController.getCategorias);
+router.get('/proveedores', protegerRuta, inventoryController.getProveedores);
 
 module.exports = router;

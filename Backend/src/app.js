@@ -5,39 +5,44 @@ const cors = require('cors');
 const app = express();
 
 // --- 1. Middlewares Globales ---
-// Permite que tu frontend en React (que estará en otro puerto o dominio) pueda hacer peticiones
+// Permite que tu frontend (React/Vite, Postman) pueda hacer peticiones
 app.use(cors()); 
 // Permite que el servidor entienda los datos JSON que le envíes en el body
 app.use(express.json()); 
 
 // --- 2. Rutas Base (Módulos) ---
-// Aquí es donde iremos "enchufando" cada módulo conforme lo vayamos construyendo.
-// Por ahora los dejamos comentados para que veas la estructura:
-
+// Importamos todos los enrutadores de nuestros módulos
+const authRoutes = require('./modules/auth/auth.routes');
 const inventoryRoutes = require('./modules/inventory/inventory.routes');
 const locationRoutes = require('./modules/locations/locations.routes');
+const movementRoutes = require('./modules/movements/movements.routes');
+const itAssetsRoutes = require('./modules/it-assets/it-assets.routes');
+
+// Enchufamos las rutas a la API
+app.use('/api/auth', authRoutes);               // Login, Registro, 2FA, Recuperación
+app.use('/api/inventory', inventoryRoutes);     // Kardex, Categorías, Proveedores
+app.use('/api/locations', locationRoutes);      // Sedes, Ciudades, Países
+app.use('/api/movements', movementRoutes);      // Ventas, Traslados (Logística)
+app.use('/api/it-assets', itAssetsRoutes);      // Fichas técnicas exclusivas de TI
 
 
-app.use('/api/inventory', inventoryRoutes);
-app.use('/api/locations', locationRoutes);
-
-
-// Ruta de salud (Healthcheck) - Ideal para el MVP para saber que el backend responde
+// --- Ruta de salud (Healthcheck) ---
+// Ideal para saber que el backend responde en el servidor de SOI Soluciones
 app.get('/api/health', (req, res) => {
   res.status(200).json({ 
     status: 'ok', 
-    message: 'Backend del Kardex para SOI Soluciones está operativo 🟢' 
+    message: 'Backend de SOI Core está operativo 🟢' 
   });
 });
 
 // --- 3. Middleware Global de Manejo de Errores ---
 // Si alguna ruta falla, el error cae aquí y no tumba el servidor
 app.use((err, req, res, next) => {
-  console.error('[Error Crítico]:', err.message);
+  console.error('[Error Crítico]:', err.stack); // Cambié a err.stack para que veas la línea exacta si algo falla
   res.status(err.status || 500).json({ 
     error: err.message || 'Error interno del servidor' 
   });
 });
 
-// Exportamos la app "limpia", SIN arrancar el servidor
+// Exportamos la app "limpia", SIN arrancar el servidor (server.js se encarga de eso)
 module.exports = app;
