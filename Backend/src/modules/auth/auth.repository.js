@@ -70,6 +70,36 @@ const solicitarRecuperacion = async (email) => {
     return data;
   };
 
+  const crearUsuarioAuth = async (email, password) => {
+  // 1. Creamos al usuario en Supabase Auth
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+  });
+
+  if (error) throw new Error(`Error al crear usuario en Auth: ${error.message}`);
+  return data.user;
+};
+
+const crearPerfilUsuario = async (userId, nombreCompleto, rolId, sedeId) => {
+  // 2. Guardamos sus datos en la tabla pública perfiles_usuario
+  const { data, error } = await supabase
+    .from('perfiles_usuario')
+    .insert([
+      {
+        id: userId, // Debe ser el mismo ID que nos dio Supabase Auth
+        nombre_completo: nombreCompleto,
+        rol_id: rolId,
+        sede_id: sedeId,
+        estado: 'ACTIVO' // O el estado por defecto que uses
+      }
+    ])
+    .select();
+
+  if (error) throw new Error(`Error al crear el perfil: ${error.message}`);
+  return data[0];
+};
+
 module.exports = { 
   iniciarSesion, 
   obtenerPerfilUsuario,
@@ -78,4 +108,6 @@ module.exports = {
   verificarTOTP,
   solicitarRecuperacion,
   actualizarPassword, 
+  crearPerfilUsuario,
+  crearUsuarioAuth
 };

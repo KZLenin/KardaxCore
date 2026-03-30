@@ -73,10 +73,33 @@ const solicitarRecuperacion = async (req, res) => {
     }
   };
 
+const registrarUsuario = async (req, res) => {
+  try {
+    // req.body traerá los datos desde el frontend (React)
+    const { email, password, nombre_completo, rol_id, sede_id } = req.body;
+    
+    // Pasamos todos los datos al Service
+    const resultado = await authService.procesarRegistro({
+      email, 
+      password, 
+      nombre_completo, 
+      rol_id, 
+      sede_id
+    });
+
+    res.status(201).json({
+      mensaje: 'Usuario creado exitosamente',
+      usuario: resultado.perfil
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
 module.exports = { 
     login, 
     configurar2FA,
     solicitarRecuperacion, 
     cambiarPassword,
-    getUsuarios 
+    getUsuarios,
+    registrarUsuario,
 };

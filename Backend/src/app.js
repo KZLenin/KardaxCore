@@ -18,6 +18,9 @@ const locationRoutes = require('./modules/locations/locations.routes');
 const movementRoutes = require('./modules/movements/movements.routes');
 const itAssetsRoutes = require('./modules/it-assets/it-assets.routes');
 
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./swagger-output.json');
+
 // Enchufamos las rutas a la API
 app.use('/api/auth', authRoutes);               // Login, Registro, 2FA, Recuperación
 app.use('/api/inventory', inventoryRoutes);     // Kardex, Categorías, Proveedores
@@ -25,6 +28,7 @@ app.use('/api/locations', locationRoutes);      // Sedes, Ciudades, Países
 app.use('/api/movements', movementRoutes);      // Ventas, Traslados (Logística)
 app.use('/api/it-assets', itAssetsRoutes);      // Fichas técnicas exclusivas de TI
 
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // --- Ruta de salud (Healthcheck) ---
 // Ideal para saber que el backend responde en el servidor de SOI Soluciones

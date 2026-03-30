@@ -49,10 +49,35 @@ const procesarRecuperacion = async (email) => {
     return await authRepository.actualizarPassword(newPassword);
   };
 
+const procesarRegistro = async (datosUsuario) => {
+  const { email, password, nombre_completo, rol_id, sede_id } = datosUsuario;
+
+  // 1. Validaciones básicas
+  if (!email || !password || !nombre_completo || !rol_id) {
+    throw new Error('Email, contraseña, nombre y rol son obligatorios.');
+  }
+  if (password.length < 6) {
+    throw new Error('La contraseña debe tener al menos 6 caracteres.');
+  }
+
+  // 2. Creamos en Supabase Auth
+  const usuarioAuth = await authRepository.crearUsuarioAuth(email, password);
+
+  // 3. Creamos su perfil en la base de datos
+  const perfil = await authRepository.crearPerfilUsuario(
+    usuarioAuth.id, 
+    nombre_completo, 
+    rol_id, 
+    sede_id || null // La sede podría ser opcional dependiendo de tu lógica
+  );
+
+  return { usuarioAuth, perfil };
+};
 
 module.exports = { 
     procesarLogin, 
     generarQr2FA,
     procesarRecuperacion,  
-    procesarNuevaPassword 
+    procesarNuevaPassword,
+    procesarRegistro
 };
