@@ -2,6 +2,7 @@ const inventoryService = require('./inventory.service');
 
 const registrarEntrada = async (req, res, next) => {
   try {
+    console.log("Datos del token:", req.usuario);
     const datosItem = req.body;
     datosItem.sedeId = req.usuario.sedeId;
     datosItem.creadoPor = req.usuario.id;
@@ -39,7 +40,7 @@ const getProveedores = async (req, res) => {
 
 const registrarProveedor = async (req, res) => {
   try {
-    const nuevoProveedor = await inventoryRepository.crearProveedor(req.body);
+    const nuevoProveedor = await inventoryService.registrarProveedor(req.body);
     res.status(201).json({ mensaje: 'Proveedor creado', data: nuevoProveedor });
   } catch (error) {
     res.status(400).json({ error: error.message });

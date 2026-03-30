@@ -25,10 +25,20 @@ const registrarCategoria = async (datos) => {
   });
 };
 
+const registrarProveedor = async (datos) => {
+  // Validamos al menos el nombre de la empresa antes de ir a la BD
+  if (!datos.nombre_empresa) {
+    throw new Error('El nombre de la empresa es obligatorio.');
+  }
+  
+  // Pasamos los datos limpios al repositorio
+  return await inventoryRepository.crearProveedor(datos);
+};
+
 const listarCategorias = async () => await inventoryRepository.obtenerCategorias();
 const listarProveedores = async () => await inventoryRepository.obtenerProveedores();
 
 module.exports = {
-  registrarEntrada, registrarCategoria,
+  registrarEntrada, registrarCategoria, registrarProveedor,
   listarCategorias, listarProveedores,
 };

@@ -7,7 +7,7 @@ const { protegerRuta, soloRol } = require('../../core/middlewares/auth.middlewar
 
 
 
-router.post('/entrada', protegerRuta, soloRol('LOGISTICA'), inventoryController.registrarEntrada);
+router.post('/entrada', protegerRuta, soloRol('ADMIN'), inventoryController.registrarEntrada);
 router.post('/categorias', protegerRuta, soloRol('ADMIN'), inventoryController.crearCategoria);
 router.post('/proveedores', protegerRuta, inventoryController.registrarProveedor);
 

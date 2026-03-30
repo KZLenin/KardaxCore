@@ -1,26 +1,29 @@
 const supabase = require('../../config/supabase');
 
-const registrarMovimiento = async (movimiento) => {
-  // 1. Guardamos el registro de logística
-  const { data: movData, error: movError } = await supabase
-    .from('movimientos_logisticos')
-    .insert([movimiento])
-    .select()
-    .single();
-
-  if (movError) throw new Error(`Error BD al guardar movimiento: ${movError.message}`);
-
-  // 2. Traemos la info del ítem maestro para poder imprimir la etiqueta
-  const { data: itemData, error: itemError } = await supabase
-    .from('inventario')
-    .select('codigo_barras, nombre')
-    .eq('id', movimiento.item_id)
-    .single();
-
-  if (itemError) throw new Error(`Error BD al obtener datos del ítem: ${itemError.message}`);
-
-  // Devolvemos el movimiento junto con la info del ítem
-  return { ...movData, item: itemData };
+// 1. Consultar el artículo actual (para ver si hay stock)
+const obtenerItem = async (itemId) => {
+  const { data, error } = await supabase.from('inventario').select('*').eq('id', itemId).single();
+  if (error) throw new Error(`Error al obtener ítem: ${error.message}`);
+  return data;
 };
 
-module.exports = { registrarMovimiento };
+// 2. Actualizar la cantidad en bodega
+const actualizarStock = async (itemId, nuevoStock) => {
+  const { error } = await supabase.from('inventario').update({ cantidad_stock: nuevoStock }).eq('id', itemId);
+  if (error) throw new Error(`Error al actualizar stock: ${error.message}`);
+};
+
+// 3. Registrar el ticket logístico
+const insertarMovimiento = async (movimiento) => {
+  const { data, error } = await supabase.from('movimientos_logisticos').insert([movimiento]).select().single();
+  if (error) throw new Error(`Error al guardar movimiento: ${error.message}`);
+  return data;
+};
+
+// 4. Registrar la cadena de custodia
+const insertarHistorial = async (historial) => {
+  const { error } = await supabase.from('historial_seguimiento').insert([historial]);
+  if (error) throw new Error(`Error al guardar historial: ${error.message}`);
+};
+
+module.exports = { obtenerItem, actualizarStock, insertarMovimiento, insertarHistorial };
