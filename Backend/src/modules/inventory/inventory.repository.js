@@ -46,7 +46,36 @@ const crearProveedor = async (proveedor) => {
   return data;
 };
 
+const obtenerInventario = async (filtros) => {
+  // 1. Consulta base con Joins (Relaciones)
+  // Nota: Asegúrate de que los nombres de las tablas coincidan (categorias, sedes, proveedores)
+  let query = supabase
+    .from('inventario')
+    .select(`
+      *,
+      categorias (nombre),
+      sedes (nombre),
+      proveedores (nombre_empresa)
+    `);
+
+  // 2. Filtros Dinámicos
+  if (filtros.categoriaId) query = query.eq('cat_id', filtros.categoriaId);
+  if (filtros.sedeId) query = query.eq('sede_id', filtros.sede_id);
+  if (filtros.proveedorId) query = query.eq('prov_id', filtros.proveedorId);
+  
+  // Filtro de búsqueda por nombre (opcional pero muy útil)
+  if (filtros.buscar) query = query.ilike('nombre', `%${filtros.buscar}%`);
+
+  // 3. Ordenamiento Alfabético (Requerido)
+  query = query.order('nombre', { ascending: true });
+
+  const { data, error } = await query;
+
+  if (error) throw new Error(`Error al obtener el Kardex: ${error.message}`);
+  return data;
+};
+
 module.exports = {
   crearItemKardex, crearCategoria, crearProveedor,
-  obtenerCategorias, obtenerProveedores,
+  obtenerCategorias, obtenerProveedores, obtenerInventario,
 };

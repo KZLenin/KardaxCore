@@ -26,4 +26,31 @@ const insertarHistorial = async (historial) => {
   if (error) throw new Error(`Error al guardar historial: ${error.message}`);
 };
 
-module.exports = { obtenerItem, actualizarStock, insertarMovimiento, insertarHistorial };
+//Busca un ítem específicamente por su identificador físico (Barras o Serie)
+const buscarItemPorCodigo = async (codigo) => {
+  const { data, error } = await supabase
+    .from('inventario')
+    .select('*, categorias(nombre)')
+    .or(`codigo_barras.eq.${codigo},serie_fabricante.eq.${codigo}`)
+    .single();
+
+  if (error && error.code !== 'PGRST116') { // Ignorar error de "no encontrado" para manejarlo en el service
+    throw new Error(`Error al buscar código: ${error.message}`);
+  }
+  return data;
+};
+
+const obtenerHistorial = async () => {
+  const { data, error } = await supabase
+    .from('historial_seguimiento')
+    .select(`
+      *,
+      inventario ( nombre )
+    `)
+    .order('fecha_registro', { ascending: false }); // Los más nuevos primero
+
+  if (error) throw new Error(`Error al cargar la bitácora: ${error.message}`);
+  return data;
+};
+
+module.exports = { obtenerItem, actualizarStock, insertarMovimiento, insertarHistorial, buscarItemPorCodigo, obtenerHistorial };

@@ -1,5 +1,10 @@
 const repository = require('./movements.repository');
 // const cromePrinter = require('../hardware/services/cromePrinter'); // Lo activaremos pronto
+const buscarParaMovimiento = async (codigo) => {
+  const item = await repository.buscarItemPorCodigo(codigo);
+  if (!item) throw new Error(`El código [${codigo}] no está registrado en el inventario.`);
+  return item;
+};
 
 const crearMovimiento = async (datos, usuarioId) => {
   // 1. Validaciones estrictas
@@ -66,4 +71,8 @@ const crearMovimiento = async (datos, usuarioId) => {
   return { ...movimientoGuardado, item, stockRestante: nuevoStock };
 };
 
-module.exports = { crearMovimiento };
+const listarTodoElHistorial = async () => {
+  return await repository.obtenerHistorial();
+};
+
+module.exports = { crearMovimiento, buscarParaMovimiento, listarTodoElHistorial, };

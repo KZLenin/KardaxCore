@@ -46,7 +46,24 @@ const registrarProveedor = async (req, res) => {
   }
 };
 
+const getInventario = async (req, res) => {
+  try {
+    const filtros = {
+      categoriaId: req.query.categoriaId,
+      sedeId: req.query.sedeId,
+      proveedorId: req.query.proveedorId,
+      buscar: req.query.buscar
+    };
+
+    const inventario = await inventoryService.listarInventario(filtros);
+    res.status(200).json(inventario);
+  } catch (error) {
+    console.error('[Error en Controlador de Inventario]:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+};
+
 module.exports = {
   registrarEntrada, crearCategoria, registrarProveedor,
-  getCategorias, getProveedores
+  getCategorias, getProveedores, getInventario,
 };
