@@ -2,9 +2,8 @@ const inventoryService = require('./inventory.service');
 
 const registrarEntrada = async (req, res, next) => {
   try {
-    console.log("Datos del token:", req.usuario);
     const datosItem = req.body;
-    datosItem.sedeId = req.usuario.sedeId;
+    datosItem.sedeId = req.usuario.sedeId || req.body.sedeId;
     datosItem.creadoPor = req.usuario.id;
     const nuevoItem = await inventoryService.registrarEntrada(datosItem);
 

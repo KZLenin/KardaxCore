@@ -10,19 +10,38 @@ const crearMovimiento = async (datos, usuarioId) => {
   // 2. REGLA DE NEGOCIO: Validar Stock Disponible
   const item = await repository.obtenerItem(datos.itemId);
   if (!item) throw new Error('El artículo no existe en el inventario.');
-  
-  if (item.cantidad_stock < datos.cantidad) {
-    throw new Error(`Stock insuficiente. Solo quedan ${item.cantidad_stock} unidades de ${item.nombre}.`);
+
+  // 3. Declaramos las variables que van a mutar dependiendo de si es ingreso o salida
+  const tipo = datos.tipoMovimiento.trim().toUpperCase();
+  let nuevoStock = item.cantidad_stock;
+  let accionHistorial = '';
+  let descripcionHistorial = '';
+
+  // 4. LA BIFURCACIÓN LÓGICA (Ingreso vs Salida)
+  if (tipo === 'SALIDA') {
+    if (item.cantidad_stock < datos.cantidad) {
+      throw new Error(`Stock insuficiente. Solo quedan ${item.cantidad_stock} unidades de ${item.nombre}.`);
+    }
+    nuevoStock = item.cantidad_stock - datos.cantidad;
+    accionHistorial = 'DESPACHO';
+    descripcionHistorial = `Se despacharon ${datos.cantidad} unidades de ${item.nombre} hacia ${datos.destinoNombre}.`;
+    
+  } else if (tipo === 'INGRESO') {
+    nuevoStock = item.cantidad_stock + datos.cantidad;
+    accionHistorial = 'INGRESO';
+    descripcionHistorial = `Ingresaron ${datos.cantidad} unidades de ${item.nombre} desde ${datos.destinoNombre}.`;
+    
+  } else {
+    throw new Error('Tipo de movimiento no soportado. Usa INGRESO o SALIDA.');
   }
 
-  // 3. REGLA DE NEGOCIO: Actualizar el inventario
-  const nuevoStock = item.cantidad_stock - datos.cantidad;
+  // 5. REGLA DE NEGOCIO: Actualizar el inventario
   await repository.actualizarStock(item.id, nuevoStock);
 
-  // 4. Armar y guardar el Movimiento
+  // 6. Armar y guardar el Movimiento
   const nuevoMovimiento = {
     item_id: datos.itemId,
-    tipo_movimiento: datos.tipoMovimiento.trim().toUpperCase(),
+    tipo_movimiento: tipo,
     origen_id: datos.origenId || null,
     destino_nombre: datos.destinoNombre.trim(),
     destino_direccion: datos.destinoDireccion ? datos.destinoDireccion.trim() : null,
@@ -31,17 +50,17 @@ const crearMovimiento = async (datos, usuarioId) => {
   };
   const movimientoGuardado = await repository.insertarMovimiento(nuevoMovimiento);
 
-  // 5. REGLA DE NEGOCIO: Trazabilidad y Auditoría (El Gran Hermano)
+  // 7. REGLA DE NEGOCIO: Trazabilidad y Auditoría (El Gran Hermano) usando variables dinámicas
   const nuevoHistorial = {
     item_id: item.id,
-    tipo_accion: 'DESPACHO',
-    descripcion: `Se despacharon ${datos.cantidad} unidades de ${item.nombre} hacia ${nuevoMovimiento.destino_nombre}.`,
+    tipo_accion: accionHistorial,
+    descripcion: descripcionHistorial,
     usuario_responsable: usuarioId, // Quien tenga la sesión iniciada
     fecha_registro: new Date().toISOString()
   };
   await repository.insertarHistorial(nuevoHistorial);
 
-  // 6. ¡LA MAGIA DE LA ETIQUETA!
+  // 8. ¡LA MAGIA DE LA ETIQUETA!
   // cromePrinter.imprimirEtiquetaLogistica(item, movimientoGuardado);
 
   return { ...movimientoGuardado, item, stockRestante: nuevoStock };

@@ -1,6 +1,7 @@
 const service = require('./movements.service');
 
 const registrarMovimientoLogistico = async (req, res) => {
+  console.log("📥 BODY RECIBIDO EN MOVIMIENTOS:", req.body);
   try {
     // Asumimos que tu middleware de Auth inyecta los datos del usuario logueado en req.user
     // Si aún no lo hace, ponemos un ID temporal para probar
