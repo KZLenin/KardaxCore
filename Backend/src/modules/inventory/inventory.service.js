@@ -54,14 +54,27 @@ const listarInventario = async (filtros) => {
     unidad: item.unidad_medida,
     // Calculamos el estado dinámicamente aquí
     estado: item.cantidad_stock <= 2 ? 'Crítico' : 'Óptimo',
-    detalles: item.detalles
+    detalles: item.detalles,
+
+    // 🔥 LAS LÍNEAS MÁGICAS PARA EL MODAL DE EDICIÓN 🔥
+    cat_id: item.cat_id,
+    prov_id: item.prov_id || item.proveedor_id, 
+    serie_fabricante: item.serie_fabricante,
+    codigo_barras: item.codigo_barras
   }));
 };
 
 const listarCategorias = async () => await inventoryRepository.obtenerCategorias();
 const listarProveedores = async () => await inventoryRepository.obtenerProveedores();
 
+const actualizarEquipo = async (id, datosActualizados) => {
+  // Aquí podrías validar cosas de negocio (ej. que no cambien a una categoría inactiva)
+  // Como no hay reglas complejas ahora, pasamos directo al repo:
+  return await inventoryRepository.actualizarItem(id, datosActualizados);
+};
+
 module.exports = {
   registrarEntrada, registrarCategoria, registrarProveedor,
   listarCategorias, listarProveedores, listarInventario,
+  actualizarEquipo,
 };

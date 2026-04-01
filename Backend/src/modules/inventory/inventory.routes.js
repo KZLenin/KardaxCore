@@ -15,4 +15,5 @@ router.get('/categorias', protegerRuta, inventoryController.getCategorias);
 router.get('/proveedores', protegerRuta, inventoryController.getProveedores);
 router.get('/', protegerRuta, inventoryController.getInventario);
 
+router.put('/:id', protegerRuta,inventoryController.actualizarEquipo);
 module.exports = router;

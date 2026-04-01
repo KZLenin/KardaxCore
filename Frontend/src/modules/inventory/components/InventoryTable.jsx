@@ -3,16 +3,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Plus, Loader2, PackageX, FilterX } from "lucide-react";
+
 import { inventoryService } from '../services/inventoryService';
 import CreateItemSheet from '../components/CreateItemSheet';
+import EditItemSheet from './EditItemSheet';
 
 const InventoryView = () => {
   const [items, setItems] = useState([]);
@@ -20,6 +16,8 @@ const InventoryView = () => {
   const [proveedores, setProveedores] = useState([]);
   const [loading, setLoading] = useState(true);
   
+  const [itemToEdit, setItemToEdit] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   // Estado para los filtros activos
   const [filtros, setFiltros] = useState({
     buscar: '',
@@ -116,13 +114,14 @@ const InventoryView = () => {
             <FilterX className="w-4 h-4 mr-2" /> Limpiar
           </Button>
         )}
-      </div>
-
-      <CreateItemSheet 
+        <CreateItemSheet 
           categorias={categorias} 
           proveedores={proveedores} 
           onCreated={() => setFiltros({ ...filtros })} // Este truco hace que el useEffect vuelva a consultar los datos para actualizar la tabla
         />  
+      </div>
+
+      
 
       {/* TABLA DE RESULTADOS */}
       <div className="border rounded-md bg-white shadow-sm overflow-hidden">
@@ -150,7 +149,7 @@ const InventoryView = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-  {items.map((item) => (
+    {items.map((item) => (
     <TableRow key={item.id} className="hover:bg-zinc-50/50 transition-colors">
       
       {/* 1. CAMBIO: En el Service lo mapeamos como 'item.codigo' */}
@@ -177,7 +176,10 @@ const InventoryView = () => {
       </TableCell>
       
       <TableCell className="text-right">
-        <Button variant="ghost" size="sm" className="h-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+        <Button variant="ghost" size="sm" className="h-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 " onClick={() => {
+            setItemToEdit(item); // item es el objeto de la fila actual del map
+            setIsEditModalOpen(true);
+          }}>
           Detalles
         </Button>
       </TableCell>
@@ -187,8 +189,19 @@ const InventoryView = () => {
           </Table>
         )}
       </div>
+      <EditItemSheet 
+        isOpen={isEditModalOpen}
+        setIsOpen={setIsEditModalOpen}
+        item={itemToEdit}
+        categorias={categorias}
+        proveedores={proveedores}
+        onUpdated={() => setFiltros({ ...filtros })} 
+      />
     </div>
+    
   );
+
+  
 };
 
 export default InventoryView;

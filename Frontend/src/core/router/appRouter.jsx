@@ -7,6 +7,7 @@ import DashboardView from '../../modules/dashboard/views/DashboardView';
 import MainLayout from '../../shared/layout/MainLayout';
 import InventarioView from '../../modules/inventory/views/InventoryView';
 import MovementsView from '../../modules/movement/views/MovementsView';
+import MaintenanceView from '../../modules/maintenance/views/MaintenanceView'; 
 // import HardwareView from '../../modules/hardware/views/HardwareView'; // Próximamente  
 
 const AppRouter = () => {
@@ -28,6 +29,7 @@ const AppRouter = () => {
             {/* ¡Aquí iremos agregando las demás pantallas! */}
             <Route path="/inventory" element={<InventarioView />} />
             <Route path="/movements" element={<MovementsView />} />
+            <Route path="/maintenance" element={<MaintenanceView />} />
             {/* <Route path="/hardware" element={<HardwareView />} /> */}
           </Route>
         </Route>

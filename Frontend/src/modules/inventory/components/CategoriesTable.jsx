@@ -1,24 +1,34 @@
 import React, { useState, useEffect } from 'react';
+import CreateCategorySheet from './CreateCategoriesSheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+
 import { Loader2, Plus, Tags } from "lucide-react";
-import { inventoryService } from '../services/inventoryService';
+import { toast } from 'sonner';
+import { categoryService } from '../services/categoryService';
 
 const CategoriesTable = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      const data = await categoryService.getCategorias();
+      setCategories(data);
+    } catch (error) {
+      toast.error("Error al cargar categorías");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetch = async () => {
-      try {
-        const data = await inventoryService.listarCategorias();
-        setCategories(data);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch();
+    fetchCategories();
   }, []);
+
+ 
 
   return (
     <div className="border rounded-lg bg-white shadow-sm overflow-hidden animate-in fade-in duration-500">
@@ -27,11 +37,11 @@ const CategoriesTable = () => {
           <Tags className="w-5 h-5 text-blue-600" />
           <h3 className="font-semibold text-zinc-900">Gestión de Categorías</h3>
         </div>
-        <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
-          <Plus className="w-4 h-4 mr-2" /> Nueva Categoría
-        </Button>
+
+        <CreateCategorySheet onCreated={fetchCategories} />
       </div>
       
+      {/* ... (Aquí va tu tabla que ya tenías sin cambios) ... */}
       {loading ? (
         <div className="flex justify-center p-12"><Loader2 className="animate-spin text-blue-600" /></div>
       ) : (

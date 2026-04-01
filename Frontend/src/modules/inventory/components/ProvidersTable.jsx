@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import CreateProviderSheet from './CreateProviderSheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, Building2 } from "lucide-react";
@@ -8,16 +9,22 @@ const ProvidersTable = () => {
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // 1. Sacamos la función afuera y le ponemos el nombre correcto
+  const fetchProviders = async () => {
+    try {
+      setLoading(true); // Opcional: vuelve a mostrar el spinner al recargar
+      const data = await inventoryService.getProveedores();
+      setProviders(data);
+    } catch (error) {
+      console.error("Error cargando proveedores:", error);
+    } finally {
+      setLoading(false);  
+    }
+  };
+
+  // 2. El useEffect ahora solo llama a nuestra función cuando el componente carga
   useEffect(() => {
-    const fetch = async () => {
-      try {
-        const data = await inventoryService.listarProveedores();
-        setProviders(data);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch();
+    fetchProviders();
   }, []);
 
   return (
@@ -27,9 +34,7 @@ const ProvidersTable = () => {
           <Building2 className="w-5 h-5 text-blue-600" />
           <h3 className="font-semibold text-zinc-900">Directorio de Proveedores</h3>
         </div>
-        <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
-          <Plus className="w-4 h-4 mr-2" /> Nuevo Proveedor
-        </Button>
+        <CreateProviderSheet onCreated={fetchProviders} />
       </div>
       
       {loading ? (
@@ -38,7 +43,7 @@ const ProvidersTable = () => {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="font-semibold">Razón Social / Empresa</TableHead>
+              <TableHead className="font-semibold">Empresa</TableHead>
               <TableHead className="font-semibold">Contacto</TableHead>
               <TableHead className="font-semibold">Teléfono</TableHead>
               <TableHead className="text-right font-semibold">Acciones</TableHead>

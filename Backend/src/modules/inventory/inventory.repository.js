@@ -75,7 +75,27 @@ const obtenerInventario = async (filtros) => {
   return data;
 };
 
+const actualizarItem = async (id, datosActualizados) => {
+  const { data, error } = await supabase
+    .from('inventario')
+    .update(datosActualizados)
+    .eq('id', id)
+    .select(`
+    id, nombre, cantidad_stock, unidad_medida, codigo_barras, serie_fabricante,
+    cat_id, 
+    proveedor_id,
+    categorias ( nombre ),
+    proveedores ( nombre_empresa )
+  `); 
+
+  if (error) throw new Error(`Error en BD al actualizar equipo: ${error.message}`);
+  if (!data || data.length === 0) throw new Error('Equipo no encontrado en la base de datos');
+  
+  return data[0];
+};
+
 module.exports = {
   crearItemKardex, crearCategoria, crearProveedor,
   obtenerCategorias, obtenerProveedores, obtenerInventario,
+  actualizarItem
 };

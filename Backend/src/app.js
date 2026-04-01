@@ -17,6 +17,7 @@ const inventoryRoutes = require('./modules/inventory/inventory.routes');
 const locationRoutes = require('./modules/locations/locations.routes');
 const movementRoutes = require('./modules/movements/movements.routes');
 const itAssetsRoutes = require('./modules/it-assets/it-assets.routes');
+const maintenanceRoutes = require('./modules/maintenance/maintenance.routes'); 
 
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger-output.json');
@@ -27,7 +28,7 @@ app.use('/api/inventory', inventoryRoutes);     // Kardex, Categorías, Proveedo
 app.use('/api/locations', locationRoutes);      // Sedes, Ciudades, Países
 app.use('/api/movements', movementRoutes);      // Ventas, Traslados (Logística)
 app.use('/api/it-assets', itAssetsRoutes);      // Fichas técnicas exclusivas de TI
-
+app.use('/api/maintenance', maintenanceRoutes); // Módulo de Mantenimiento (nuevo)
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // --- Ruta de salud (Healthcheck) ---

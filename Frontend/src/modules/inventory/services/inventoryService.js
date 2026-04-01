@@ -47,4 +47,13 @@ export const inventoryService = {
     }
   },
 
+  actualizarEquipo: async (id, datosActualizados) => {
+    try {
+      const response = await httpClient.put(`/inventory/${id}`, datosActualizados);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.error || 'Error al actualizar el equipo';
+    }
+  },
+
 };

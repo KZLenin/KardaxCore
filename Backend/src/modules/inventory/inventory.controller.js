@@ -1,5 +1,6 @@
 const inventoryService = require('./inventory.service');
 
+
 const registrarEntrada = async (req, res, next) => {
   try {
     const datosItem = req.body;
@@ -63,7 +64,29 @@ const getInventario = async (req, res) => {
   }
 };
 
+const actualizarEquipo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nombre, categoria_id, proveedor_id, serie_fabricante, codigo_barras } = req.body;
+
+    const datosLimpios = {
+      nombre,
+      cat_id: categoria_id || null,
+      proveedor_id: proveedor_id || null,
+      serie_fabricante: serie_fabricante || null, // Le añado el blindaje aquí también por si acaso
+      codigo_barras: codigo_barras || null
+    };
+    
+    const equipoActualizado = await inventoryService.actualizarEquipo(id, datosLimpios);
+    res.status(200).json({ mensaje: 'Equipo actualizado', data: equipoActualizado });
+    
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
 module.exports = {
   registrarEntrada, crearCategoria, registrarProveedor,
   getCategorias, getProveedores, getInventario,
+  actualizarEquipo,
 };
