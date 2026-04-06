@@ -6,11 +6,13 @@ import { Loader2, Wrench, AlertCircle } from "lucide-react";
 import { maintenanceService } from '../services/maintenanceService';
 import { inventoryService } from '../../inventory/services/inventoryService'; // Para traer los equipos al modal
 import CreateTicketSheet from '../components/CreateTicketSheet';
+import ProcessTicketSheet from '../components/ProcessTicketSheet';
 
 const MaintenanceView = () => {
   const [ordenes, setOrdenes] = useState([]);
   const [equipos, setEquipos] = useState([]); // Equipos operativos para el dropdown
   const [loading, setLoading] = useState(true);
+  const [selectedTicket, setSelectedTicket] = useState(null);
 
   const cargarDatos = async () => {
     try {
@@ -48,6 +50,7 @@ const MaintenanceView = () => {
     if (estado === 'Finalizado') return <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-none">Finalizado</Badge>;
     return <Badge variant="outline">{estado}</Badge>;
   };
+
 
   return (
     <div className="space-y-6">
@@ -92,7 +95,7 @@ const MaintenanceView = () => {
             </TableHeader>
             <TableBody>
               {ordenes.map((orden) => (
-                <TableRow key={orden.id} className="hover:bg-zinc-50/50 cursor-pointer">
+                <TableRow key={orden.id} className="hover:bg-zinc-50/50 cursor-pointer" onClick={() => setSelectedTicket(orden)}>
                   <TableCell className="text-sm text-zinc-600 font-medium">{orden.fecha}</TableCell>
                   <TableCell>
                     <p className="font-semibold text-zinc-900">{orden.equipo_nombre}</p>
@@ -110,6 +113,12 @@ const MaintenanceView = () => {
           </Table>
         )}
       </div>
+      <ProcessTicketSheet 
+        ticket={selectedTicket} 
+        isOpen={!!selectedTicket} 
+        setIsOpen={() => setSelectedTicket(null)} 
+        onUpdated={cargarDatos} 
+      />
     </div>
   );
 };

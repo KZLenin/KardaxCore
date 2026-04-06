@@ -22,5 +22,14 @@ export const maintenanceService = {
     }
   },
 
+  actualizarOrden: async (id, datosActualizados) => {
+    try {
+      const response = await httpClient.put(`/maintenance/ordenes/${id}`, datosActualizados);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.error || 'Error al actualizar la orden de trabajo';
+    }
+  },
+
   // Aquí iremos agregando listarOrdenes, actualizarOrden, etc. en el futuro
 };

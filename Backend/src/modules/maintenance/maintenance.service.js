@@ -28,10 +28,29 @@ const listarOrdenes = async () => {
     estado: orden.estado,
     prioridad: orden.prioridad,
     motivo: orden.motivo,
-    fecha: new Date(orden.fecha_creacion).toLocaleDateString()
+    fecha: new Date(orden.fecha_creacion).toLocaleDateString(),
+
+    item_id: orden.item_id, // Vital para saber a quién desbloquear
+    diagnostico: orden.diagnostico,
+    trabajo_realizado: orden.trabajo_realizado,
+    costo_mano_obra: orden.costo_mano_obra,
+    costo_repuestos: orden.costo_repuestos
   }));
 };
+
+const actualizarOrden = async (id, datosActualizados, item_id) => {
+  if (!id) throw new Error('El ID de la orden es obligatorio');
+  
+  // Si envían que está finalizado, le ponemos fecha de fin automática
+  if (datosActualizados.estado === 'Finalizado' && !datosActualizados.fecha_fin) {
+    datosActualizados.fecha_fin = new Date().toISOString();
+  }
+
+  return await maintenanceRepository.actualizarOrdenTrabajo(id, datosActualizados, item_id);
+};
+
 module.exports = {
   registrarOrden,
   listarOrdenes,
+  actualizarOrden,
 };  

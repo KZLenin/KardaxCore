@@ -94,8 +94,45 @@ const actualizarItem = async (id, datosActualizados) => {
   return data[0];
 };
 
+// Obtener el historial de un equipo específico, ordenado del más reciente al más antiguo
+const obtenerHistorialItem = async (itemId) => {
+  const { data, error } = await supabase
+    .from('historial_seguimiento')
+    .select('*')
+    .eq('item_id', itemId)
+    .order('fecha_registro', { ascending: false });
+
+  if (error) throw new Error(`Error al obtener el historial: ${error.message}`);
+  return data;
+};
+
+// Función silenciosa para registrar auditoría (El Cronista)
+const registrarHistorial = async (itemId, tipoAccion, descripcion, usuarioResponsable = 'Sistema') => {
+  const { error } = await supabase
+    .from('historial_seguimiento')
+    .insert([{
+      item_id: itemId,
+      tipo_accion: tipoAccion,
+      descripcion: descripcion,
+      usuario_responsable: usuarioResponsable, // Tu BD lo tiene como texto
+      ubicacion_actual: 'Mantenimiento' // Opcional, puedes mejorarlo después
+    }]);
+
+  if (error) {
+    // Solo lo imprimimos en consola para no romper la app si la auditoría falla
+    console.error('🚨 [Auditoría Falló]:', error.message); 
+  }
+};
+
+// Asegúrate de exportarla junto con las demás:
 module.exports = {
-  crearItemKardex, crearCategoria, crearProveedor,
-  obtenerCategorias, obtenerProveedores, obtenerInventario,
+  // ... tus otras funciones
+  obtenerHistorialItem,
+  registrarHistorial
+};
+
+module.exports = {
+  crearItemKardex, crearCategoria, crearProveedor, registrarHistorial,
+  obtenerCategorias, obtenerProveedores, obtenerInventario, obtenerHistorialItem,
   actualizarItem
 };

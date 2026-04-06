@@ -73,8 +73,23 @@ const actualizarEquipo = async (id, datosActualizados) => {
   return await inventoryRepository.actualizarItem(id, datosActualizados);
 };
 
+const obtenerHistorial = async (itemId) => {
+  if (!itemId) throw new Error('El ID del equipo es obligatorio');
+  
+  const historial = await inventoryRepository.obtenerHistorialItem(itemId);
+  
+  // Formateamos la fecha para que el Frontend no sufra
+  return historial.map(evento => ({
+    ...evento,
+    fecha_formateada: new Date(evento.fecha_registro).toLocaleString('es-ES', {
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    })
+  }));
+};
+
 module.exports = {
   registrarEntrada, registrarCategoria, registrarProveedor,
-  listarCategorias, listarProveedores, listarInventario,
+  listarCategorias, listarProveedores, listarInventario, obtenerHistorial,
   actualizarEquipo,
 };

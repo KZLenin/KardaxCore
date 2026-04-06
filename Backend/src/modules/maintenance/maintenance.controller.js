@@ -30,11 +30,27 @@ const getOrdenes = async (req, res) => {
   }
 };
 
-// ⚠️ ATENCIÓN AQUÍ (Para tu función crearOrden que ya tienes):
-// Como tu login está al 100%, asegúrate de que en crearOrden tengas esta línea:
-// datosOrden.creado_por = req.usuario.id; // Asumiendo que tu middleware inyecta el usuario
+const actualizarOrden = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const datosActualizados = req.body;
+    // Extraemos el item_id que debe venir desde el frontend para saber a quién desbloquear
+    const { item_id } = req.body; 
+
+    const ordenActualizada = await maintenanceService.actualizarOrden(id, datosActualizados, item_id);
+
+    res.status(200).json({
+      mensaje: 'Orden actualizada correctamente',
+      data: ordenActualizada
+    });
+  } catch (error) {
+    console.error('🚨 ERROR AL ACTUALIZAR ORDEN:', error);
+    res.status(400).json({ error: error.message });
+  }
+};
 
 module.exports = {
   crearOrden,
   getOrdenes,
+  actualizarOrden,
 };

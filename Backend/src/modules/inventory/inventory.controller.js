@@ -1,3 +1,4 @@
+const { get } = require('./inventory.routes');
 const inventoryService = require('./inventory.service');
 
 
@@ -85,8 +86,19 @@ const actualizarEquipo = async (req, res) => {
   }
 };
 
+const getHistorial = async (req, res) => {
+  try {
+    const { id } = req.params; // Este es el ID del equipo
+    const historial = await inventoryService.obtenerHistorial(id);
+    res.status(200).json(historial);
+  } catch (error) {
+    console.error('[Error en Historial]:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+};
+
 module.exports = {
   registrarEntrada, crearCategoria, registrarProveedor,
-  getCategorias, getProveedores, getInventario,
+  getCategorias, getProveedores, getInventario, getHistorial,
   actualizarEquipo,
 };
