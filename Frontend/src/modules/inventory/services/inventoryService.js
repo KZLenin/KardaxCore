@@ -64,5 +64,17 @@ export const inventoryService = {
       throw error.response?.data?.error || 'Error al cargar el historial del equipo';
     }
   },
+  
+  descargarEtiquetasPDF: async (id, cantidad = 1) => {
+    try {
+      // Le decimos a Axios: "Prepárate, lo que viene es un archivo (blob), no un JSON"
+      const response = await httpClient.get(`/inventory/${id}/etiquetas?cantidad=${cantidad}`, {
+        responseType: 'blob' 
+      });
+      return response.data; // Retorna el archivo crudo
+    } catch (error) {
+      throw new Error('Error al generar el PDF de etiquetas');
+    }
+  },
 
 };

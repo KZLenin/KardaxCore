@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Box, ScanText, Check, Pencil, Lock, Unlock, X, Archive, MapPin, AlignLeft, History } from "lucide-react";
+import { Loader2, Box, ScanText, Check, Pencil, Lock, Unlock, X, Archive, MapPin, AlignLeft, History, Printer } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,9 +25,12 @@ const formSchema = z.object({
 
 const EditItemSheet = ({ item, categorias = [], proveedores = [], onUpdated, isOpen, setIsOpen }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // 🔥 NUEVO ESTADO: Controla si estamos en modo lectura o modo edición
+  //Edicion o Vista
   const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
+  //impresion de codgio de barras
+  const [cantidadImprimir, setCantidadImprimir] = useState(1);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -98,6 +101,31 @@ const EditItemSheet = ({ item, categorias = [], proveedores = [], onUpdated, isO
       toast({ title: "Error", description: error, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleImprimirEtiquetas = async () => {
+    if (!item?.id) return;
+    
+    setIsPrinting(true);
+    try {
+      // 1. Pedimos el PDF al Backend
+      const pdfBlob = await inventoryService.descargarEtiquetasPDF(item.id, cantidadImprimir);
+      
+      // 2. Creamos una URL temporal en la memoria del navegador
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      
+      // 3. Abrimos el PDF en una pestaña nueva para que el usuario imprima
+      window.open(pdfUrl, '_blank');
+      
+      // (Opcional) Limpiamos la URL después de unos segundos para no llenar la RAM
+      setTimeout(() => URL.revokeObjectURL(pdfUrl), 10000);
+      
+      toast({ title: "¡PDF Generado!", description: `Etiquetas listas para imprimir.` });
+    } catch (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsPrinting(false);
     }
   };
 
@@ -269,6 +297,42 @@ const EditItemSheet = ({ item, categorias = [], proveedores = [], onUpdated, isO
                   </div>
                 )}
               </div>
+
+              {/* SECCIÓN DE IMPRESIÓN INDUSTRIAL */}
+                <div className="col-span-2 mt-6 p-4 bg-zinc-50 border border-zinc-200 rounded-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div>
+                    <h4 className="text-sm font-semibold text-zinc-900">Etiquetas Físicas</h4>
+                    <p className="text-xs text-zinc-500">Genera el PDF calibrado para la impresora térmica (58x40mm).</p>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col">
+                      <label className="text-[10px] font-semibold text-zinc-500 uppercase">Cantidad</label>
+                      <Input 
+                        type="number" 
+                        min="1" 
+                        max="500"
+                        value={cantidadImprimir}
+                        onChange={(e) => setCantidadImprimir(e.target.value)}
+                        className="w-20 h-9 text-center font-mono bg-white"
+                        disabled={isPrinting}
+                      />
+                    </div>
+                    
+                    <Button 
+                      type="button" 
+                      className="h-9 mt-4 bg-zinc-900 hover:bg-zinc-800 text-white"
+                      onClick={handleImprimirEtiquetas}
+                      disabled={isPrinting}
+                    >
+                      {isPrinting ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generando...</>
+                      ) : (
+                        <><Printer className="w-4 h-4 mr-2" /> Imprimir</>
+                      )}
+                    </Button>
+                  </div>
+                </div>
 
               {/* === FOOTER DE ACCIONES === */}
               {isEditing && (
