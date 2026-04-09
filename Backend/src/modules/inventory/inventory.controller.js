@@ -1,6 +1,6 @@
 const { get } = require('./inventory.routes');
 const inventoryService = require('./inventory.service');
-
+const { generarPdfEtiquetas } = require('../../utils/barcodeGenerator'); // Ajusta la ruta a donde guardaste el archivo
 
 const registrarEntrada = async (req, res, next) => {
   try {
@@ -97,8 +97,34 @@ const getHistorial = async (req, res) => {
   }
 };
 
+const descargarEtiquetas = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const cantidad = parseInt(req.query.cantidad) || 1; // Si no mandan cantidad, imprimimos 1 por defecto
+
+    // 1. Buscamos los datos reales del equipo
+    const equipo = await inventoryService.obtenerEquipoPorId(id); // <--- Ajusta al nombre real de tu función
+    if (!equipo) throw new Error("Equipo no encontrado");
+
+    // 2. Llamamos al motor V8
+    const pdfBuffer = await generarPdfEtiquetas(equipo.codigo_barras, equipo.nombre, cantidad);
+
+    // 3. Le decimos al navegador: "¡Oye, prepárate que te envío un archivo PDF!"
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=etiquetas_${equipo.codigo_barras}.pdf`);
+    
+    // 4. Enviamos el archivo crudo
+    res.send(pdfBuffer);
+
+  } catch (error) {
+    console.error('🚨 ERROR AL GENERAR ETIQUETAS:', error);
+    res.status(500).json({ error: 'Error al generar las etiquetas' });
+  }
+};
+
 module.exports = {
   registrarEntrada, crearCategoria, registrarProveedor,
   getCategorias, getProveedores, getInventario, getHistorial,
   actualizarEquipo,
+  descargarEtiquetas,
 };

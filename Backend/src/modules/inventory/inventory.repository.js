@@ -124,15 +124,19 @@ const registrarHistorial = async (itemId, tipoAccion, descripcion, usuarioRespon
   }
 };
 
-// Asegúrate de exportarla junto con las demás:
-module.exports = {
-  // ... tus otras funciones
-  obtenerHistorialItem,
-  registrarHistorial
+const obtenerItemPorId = async (id) => {
+  const { data, error } = await supabase
+    .from('inventario')
+    .select('id, nombre, codigo_barras') // Solo pedimos lo necesario para la etiqueta
+    .eq('id', id)
+    .single();
+
+  if (error) throw new Error(`Error BD al obtener equipo: ${error.message}`);
+  return data;
 };
 
 module.exports = {
   crearItemKardex, crearCategoria, crearProveedor, registrarHistorial,
-  obtenerCategorias, obtenerProveedores, obtenerInventario, obtenerHistorialItem,
+  obtenerCategorias, obtenerProveedores, obtenerInventario, obtenerHistorialItem, obtenerItemPorId,
   actualizarItem
 };

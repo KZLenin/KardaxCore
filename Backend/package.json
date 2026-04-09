@@ -13,10 +13,12 @@
   "description": "",
   "dependencies": {
     "@supabase/supabase-js": "^2.100.1",
+    "bwip-js": "^4.9.0",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "multer": "^2.1.1",
+    "pdfkit": "^0.18.0",
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {

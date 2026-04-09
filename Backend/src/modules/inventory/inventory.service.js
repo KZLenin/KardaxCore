@@ -88,8 +88,20 @@ const obtenerHistorial = async (itemId) => {
   }));
 };
 
+const obtenerEquipoPorId = async (id) => {
+  if (!id) throw new Error('El ID del equipo es obligatorio');
+  
+  const equipo = await inventoryRepository.obtenerItemPorId(id);
+  if (!equipo) throw new Error('Equipo no encontrado');
+  
+  // Si el equipo no tiene código de barras, no podemos imprimir nada
+  if (!equipo.codigo_barras) throw new Error('Este equipo no tiene un código de barras asignado');
+  
+  return equipo;
+};
+
 module.exports = {
   registrarEntrada, registrarCategoria, registrarProveedor,
-  listarCategorias, listarProveedores, listarInventario, obtenerHistorial,
+  listarCategorias, listarProveedores, listarInventario, obtenerHistorial, obtenerEquipoPorId,
   actualizarEquipo,
 };
