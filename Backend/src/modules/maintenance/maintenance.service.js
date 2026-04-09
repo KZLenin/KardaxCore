@@ -49,8 +49,25 @@ const actualizarOrden = async (id, datosActualizados, item_id) => {
   return await maintenanceRepository.actualizarOrdenTrabajo(id, datosActualizados, item_id);
 };
 
+const lookupEquipoPorEscaneo = async (codigo) => {
+  if (!codigo) throw new Error('El código escaneado es obligatorio');
+  const equipo = await maintenanceRepository.buscarEquipoPorCodigo(codigo);
+  
+  if (!equipo) {
+    throw new Error(`No se encontró ningún equipo con el código: ${codigo}`);
+  }
+  
+  // Formateamos para el frontend
+  return {
+    id: equipo.id,
+    nombre: equipo.nombre,
+    codigo: equipo.codigo_barras,
+    sede: equipo.sedes?.nombre || 'Sede N/A'
+  };
+};
+
 module.exports = {
   registrarOrden,
-  listarOrdenes,
+  listarOrdenes, lookupEquipoPorEscaneo,
   actualizarOrden,
 };  

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Box, ScanText, Check, Pencil, Lock, Unlock, X, Archive, MapPin, AlignLeft } from "lucide-react";
+import { Loader2, Box, ScanText, Check, Pencil, Lock, Unlock, X, Archive, MapPin, AlignLeft, History } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { inventoryService } from '../services/inventoryService';
 import { useToast } from "@/hooks/use-toast";
 
+import ItemTimeline from './ItemTimeline';
 const formSchema = z.object({
   nombre: z.string().min(3, "Mínimo 3 letras"),
   categoriaId: z.string().min(1, "Requerido"),
@@ -291,6 +292,15 @@ const EditItemSheet = ({ item, categorias = [], proveedores = [], onUpdated, isO
                   </Button>
                 </div>
               )}
+
+              <div className="space-y-4 pt-6 border-t border-zinc-200 mt-8">
+              <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-2 mb-4">
+                <History className="w-4 h-4" /> Historial de Vida
+              </h3>
+              
+              {/* Aquí metemos la línea de tiempo, solo si el equipo ya existe */}
+              {item?.id && <ItemTimeline itemId={item.id} />}
+            </div>
             </form>
           </Form>
         </div>

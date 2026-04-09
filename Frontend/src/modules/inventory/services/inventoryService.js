@@ -56,4 +56,13 @@ export const inventoryService = {
     }
   },
 
+  getHistorial: async (id) => {
+    try {
+      const response = await httpClient.get(`/inventory/${id}/historial`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.error || 'Error al cargar el historial del equipo';
+    }
+  },
+
 };

@@ -82,8 +82,26 @@ const actualizarOrdenTrabajo = async (id, datosActualizados, item_id) => {
   return orden;
 };
 
+const buscarEquipoPorCodigo = async (codigo) => {
+  const { data, error } = await supabase
+    .from('inventario')
+    .select(`
+      id, 
+      nombre, 
+      codigo_barras,
+      sedes!inventario_sede_id_fkey (nombre) -- Traemos la sede para contexto visual
+    `)
+    .eq('codigo_barras', codigo)
+    .single(); // Esperamos uno solo
+
+  if (error && error.code !== 'PGRST116') { // PGRST116 is not found, which we want to handle gracefully
+    throw new Error(`Error al buscar equipo: ${error.message}`);
+  }
+  return data; // Si no lo encuentra, devolverá null
+};
+
 module.exports = {
   crearOrdenTrabajo,
-  obtenerOrdenes,
+  obtenerOrdenes, buscarEquipoPorCodigo,
   actualizarOrdenTrabajo,
 };
