@@ -77,4 +77,43 @@ export const inventoryService = {
     }
   },
 
+  prepararCargaMasiva: async (datosExcel, diccionarios) => {
+    const { sedes, categorias } = diccionarios;
+
+    return datosExcel.map((fila, index) => {
+      // 🔍 Buscar ID de la Sede por nombre
+      const sedeEncontrada = sedes.find(
+        s => s.nombre.toLowerCase() === String(fila.sede).toLowerCase()
+      );
+
+      // 🔍 Buscar ID de la Categoría por nombre
+      const catEncontrada = categorias.find(
+        c => c.nombre.toLowerCase() === String(fila.categoria).toLowerCase()
+      );
+
+      // Validamos si algo falta para avisar al usuario
+      if (!sedeEncontrada || !catEncontrada) {
+        throw new Error(
+          `Error en fila ${index + 1}: No se encontró la sede "${fila.sede}" o la categoría "${fila.categoria}".`
+        );
+      }
+
+      return {
+        nombre: fila.nombre.trim().toUpperCase(),
+        codigo_barras: String(fila.codigo || ''),
+        serie_fabricante: String(fila.serie || ''),
+        cantidad_stock: Number(fila.cantidad || 0),
+        sede_id: sedeEncontrada.id,
+        cat_id: catEncontrada.id,
+        detalles: { importado: true, fecha: new Date().toISOString() }
+      };
+    });
+  },
+
+  importarMasivo: async (items) => {
+    // Aquí llamas a tu API de backend (la ruta que definimos antes)
+    const { data } = await httpClient.post('/inventory/bulk', items);
+    return data;
+  }
+
 };

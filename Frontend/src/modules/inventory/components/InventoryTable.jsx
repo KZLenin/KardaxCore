@@ -4,11 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, Loader2, PackageX, FilterX } from "lucide-react";
+import { Search, Plus, Loader2, PackageX, FilterX, FileSpreadsheet } from "lucide-react";
+
 
 import { inventoryService } from '../services/inventoryService';
-import CreateItemSheet from '../components/CreateItemSheet';
+import CreateItemSheet from './CreateItemSheet';
 import EditItemSheet from './EditItemSheet';
+import BulkImportSheet from './BulkImportSheet';
 
 const InventoryView = () => {
   const [items, setItems] = useState([]);
@@ -23,6 +25,8 @@ const InventoryView = () => {
     buscar: '',
     categoriaId: 'todas',
   });
+
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
 
   // Cargar categorías iniciales
   useEffect(() => {
@@ -114,6 +118,16 @@ const InventoryView = () => {
             <FilterX className="w-4 h-4 mr-2" /> Limpiar
           </Button>
         )}
+
+        <Button 
+                variant="outline" 
+                onClick={() => setIsBulkImportOpen(true)}
+                className="border-green-600 text-green-600 hover:bg-green-50 hover:text-green-700"
+            >
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Importar
+            </Button>
+
         <CreateItemSheet 
           categorias={categorias} 
           proveedores={proveedores} 
@@ -196,6 +210,12 @@ const InventoryView = () => {
         categorias={categorias}
         proveedores={proveedores}
         onUpdated={() => setFiltros({ ...filtros })} 
+      />
+
+      <BulkImportSheet 
+        isOpen={isBulkImportOpen}
+        setIsOpen={setIsBulkImportOpen}
+        onImportSuccess={() => setFiltros({ ...filtros })} 
       />
     </div>
     

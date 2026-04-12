@@ -134,9 +134,20 @@ const obtenerItemPorId = async (id) => {
   if (error) throw new Error(`Error BD al obtener equipo: ${error.message}`);
   return data;
 };
+const importarItemsMasivo = async (items) => {
+  // items es un array de objetos [{nombre: '...', stock: 10}, ...]
+  const { data, error } = await supabase
+    .from('inventario')
+    .insert(items)
+    .select();
+
+  if (error) throw new Error(`Error en carga masiva: ${error.message}`);
+  return data;
+};
 
 module.exports = {
   crearItemKardex, crearCategoria, crearProveedor, registrarHistorial,
   obtenerCategorias, obtenerProveedores, obtenerInventario, obtenerHistorialItem, obtenerItemPorId,
-  actualizarItem
+  actualizarItem,
+  importarItemsMasivo,
 };

@@ -30,12 +30,13 @@ const crearMovimiento = async (datos, usuarioId) => {
     nuevoStock = item.cantidad_stock - datos.cantidad;
     accionHistorial = 'DESPACHO';
     descripcionHistorial = `Se despacharon ${datos.cantidad} unidades de ${item.nombre} hacia ${datos.destinoNombre}.`;
-    
+    if (datos.numeroComprobante || datos.poCliente) {
+      descripcionHistorial += ` Recibo: ${datos.numeroComprobante || 'S/N'} | PO Cliente: ${datos.poCliente || 'S/N'}.`;
+    }
   } else if (tipo === 'INGRESO') {
     nuevoStock = item.cantidad_stock + datos.cantidad;
     accionHistorial = 'INGRESO';
-    descripcionHistorial = `Ingresaron ${datos.cantidad} unidades de ${item.nombre} desde ${datos.destinoNombre}.`;
-    
+    descripcionHistorial = `Ingresaron ${datos.cantidad} unidades de ${item.nombre} desde ${datos.destinoNombre}. PO Proveedor: ${datos.poNumero || 'S/N'}.`;
   } else {
     throw new Error('Tipo de movimiento no soportado. Usa INGRESO o SALIDA.');
   }
@@ -50,7 +51,12 @@ const crearMovimiento = async (datos, usuarioId) => {
     origen_id: datos.origenId || null,
     destino_nombre: datos.destinoNombre.trim(),
     destino_direccion: datos.destinoDireccion ? datos.destinoDireccion.trim() : null,
+    precio_venta: tipo === 'SALIDA' ? datos.precioVenta : null,
+    costo_unitario: tipo === 'INGRESO' ? datos.costoUnitario : null,
+    po_numero: datos.poNumero || null,
+    garantia_dias: parseInt(datos.garantiaDias) || 0,
     precio_venta: datos.precioVenta || null,
+    venta_id: datos.ventaId || null,
     fecha_movimiento: new Date().toISOString()
   };
   const movimientoGuardado = await repository.insertarMovimiento(nuevoMovimiento);
@@ -60,6 +66,7 @@ const crearMovimiento = async (datos, usuarioId) => {
     item_id: item.id,
     tipo_accion: accionHistorial,
     descripcion: descripcionHistorial,
+    venta_id: datos.ventaId || null,
     usuario_responsable: usuarioId, // Quien tenga la sesión iniciada
     fecha_registro: new Date().toISOString()
   };

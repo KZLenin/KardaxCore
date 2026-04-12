@@ -8,6 +8,7 @@ import MainLayout from '../../shared/layout/MainLayout';
 import InventarioView from '../../modules/inventory/views/InventoryView';
 import MovementsView from '../../modules/movement/views/MovementsView';
 import MaintenanceView from '../../modules/maintenance/views/MaintenanceView'; 
+import SalesPage from '../../modules/sales/views/SalesView';
 // import HardwareView from '../../modules/hardware/views/HardwareView'; // Próximamente  
 
 const AppRouter = () => {
@@ -30,6 +31,7 @@ const AppRouter = () => {
             <Route path="/inventory" element={<InventarioView />} />
             <Route path="/movements" element={<MovementsView />} />
             <Route path="/maintenance" element={<MaintenanceView />} />
+            <Route path="/sales" element={<SalesPage />} />
             {/* <Route path="/hardware" element={<HardwareView />} /> */}
           </Route>
         </Route>
