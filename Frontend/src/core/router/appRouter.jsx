@@ -9,6 +9,7 @@ import InventarioView from '../../modules/inventory/views/InventoryView';
 import MovementsView from '../../modules/movement/views/MovementsView';
 import MaintenanceView from '../../modules/maintenance/views/MaintenanceView'; 
 import SalesPage from '../../modules/sales/views/SalesView';
+import LocationsView from '../../modules/location/views/LocationsView';
 // import HardwareView from '../../modules/hardware/views/HardwareView'; // Próximamente  
 
 const AppRouter = () => {
@@ -32,6 +33,7 @@ const AppRouter = () => {
             <Route path="/movements" element={<MovementsView />} />
             <Route path="/maintenance" element={<MaintenanceView />} />
             <Route path="/sales" element={<SalesPage />} />
+            <Route path="/locations/*" element={<LocationsView />} />
             {/* <Route path="/hardware" element={<HardwareView />} /> */}
           </Route>
         </Route>

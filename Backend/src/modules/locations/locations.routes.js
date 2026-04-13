@@ -3,9 +3,9 @@ const router = express.Router();
 const controller = require('./locations.controller');
 const { protegerRuta, soloRol } = require('../../core/middlewares/auth.middleware');
 
-router.post('/paises', soloRol('ADMIN'), controller.crearPais);
-router.post('/ciudades', soloRol('ADMIN'), controller.crearCiudad);
-router.post('/sedes', soloRol('ADMIN'), controller.crearSede);
+router.post('/paises', protegerRuta, soloRol('ADMIN'), controller.crearPais);
+router.post('/ciudades', protegerRuta, soloRol('ADMIN'), controller.crearCiudad);
+router.post('/sedes', protegerRuta, soloRol('ADMIN'), controller.crearSede);
 
 router.get('/paises', protegerRuta, controller.getPaises);
 router.get('/ciudades', protegerRuta, controller.getCiudades);

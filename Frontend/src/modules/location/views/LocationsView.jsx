@@ -3,9 +3,9 @@ import { MapPin, Building, Globe } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Estos componentes los vamos a crear paso a paso a continuación
-// import SedesTable from './SedesTable';
-// import CiudadesTable from './CiudadesTable';
-// import PaisesTable from './PaisesTable';
+import SedesTable from '../components/SedesTable';
+import CiudadesTable from '../components/CiudadesTable';
+import PaisesTable from '../components/PaisesTable';
 
 const LocationsView = () => {
   return (
@@ -55,27 +55,15 @@ const LocationsView = () => {
 
         {/* CONTENEDORES DE LAS TABLAS */}
         <TabsContent value="sedes" className="m-0 border-none outline-none">
-          <div className="p-12 border-2 border-dashed border-zinc-200 rounded-xl flex flex-col items-center justify-center text-zinc-500 bg-zinc-50">
-            <Building className="w-12 h-12 mb-4 text-zinc-300" />
-            <p>Aquí irá la tabla de Sedes (Sucursales)</p>
-          </div>
-          {/* <SedesTable /> */}
+          <SedesTable />
         </TabsContent>
 
         <TabsContent value="ciudades" className="m-0 border-none outline-none">
-          <div className="p-12 border-2 border-dashed border-zinc-200 rounded-xl flex flex-col items-center justify-center text-zinc-500 bg-zinc-50">
-            <MapPin className="w-12 h-12 mb-4 text-zinc-300" />
-            <p>Aquí irá la tabla de Ciudades</p>
-          </div>
-          {/* <CiudadesTable /> */}
+          <CiudadesTable /> 
         </TabsContent>
 
         <TabsContent value="paises" className="m-0 border-none outline-none">
-          <div className="p-12 border-2 border-dashed border-zinc-200 rounded-xl flex flex-col items-center justify-center text-zinc-500 bg-zinc-50">
-            <Globe className="w-12 h-12 mb-4 text-zinc-300" />
-            <p>Aquí irá la tabla de Países</p>
-          </div>
-          {/* <PaisesTable /> */}
+          <PaisesTable /> 
         </TabsContent>
         
       </Tabs>
