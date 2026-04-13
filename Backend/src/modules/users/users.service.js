@@ -39,8 +39,20 @@ const registrarUsuario = async (datos) => {
   return await repository.crearUsuarioAuthYPerfil(datosLimpios);
 };
 
+// Añade esto antes del module.exports
+const actualizarUsuario = async (id, datos) => {
+  if (!id) throw new Error('El ID del usuario es obligatorio.');
+  
+  const datosLimpios = { ...datos };
+  if (datosLimpios.nombre_completo) datosLimpios.nombre_completo = datosLimpios.nombre_completo.trim();
+
+  return await repository.actualizarPerfilUsuario(id, datosLimpios);
+};
+
+
+
 module.exports = {
-  listarRoles,
-  listarUsuarios,
-  registrarUsuario
+  listarRoles, listarUsuarios,
+  registrarUsuario,
+  actualizarUsuario
 };

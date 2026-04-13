@@ -28,8 +28,18 @@ const crearUsuario = async (req, res) => {
   }
 };
 
+const actualizarUsuario = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const usuarioActualizado = await service.actualizarUsuario(id, req.body);
+    res.status(200).json({ mensaje: 'Perfil actualizado con éxito', data: usuarioActualizado });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
 module.exports = {
-  getRoles,
-  getUsuarios,
-  crearUsuario
+  getRoles, getUsuarios,
+  crearUsuario,
+  actualizarUsuario
 };

@@ -10,4 +10,6 @@ router.get('/', protegerRuta, soloRol('ADMIN'), controller.getUsuarios);
 // Ruta de creación (ESTRICTAMENTE ADMIN)
 router.post('/', protegerRuta, soloRol('ADMIN'), controller.crearUsuario);
 
+router.put('/:id', protegerRuta, soloRol('ADMIN'), controller.actualizarUsuario);
+
 module.exports = router;

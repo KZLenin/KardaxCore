@@ -5,7 +5,7 @@ const { createClient } = require('@supabase/supabase-js');
 // Asegúrate de tener SUPABASE_SERVICE_ROLE_KEY en tu archivo .env
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_SERVICE_KEY
 );
 
 const obtenerRoles = async () => {
@@ -63,9 +63,34 @@ const crearUsuarioAuthYPerfil = async (datosUsuario) => {
 
   return perfilData;
 };
+const actualizarPerfilUsuario = async (id, datosActualizados) => {
+  // 1. Actualizamos tu tabla de perfiles (El Gafete)
+  const { data, error } = await supabaseAdmin
+    .from('perfiles_usuario')
+    .update(datosActualizados)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw new Error(`Error BD al actualizar perfil: ${error.message}`);
+
+  // 2. 🔥 LE AVISAMOS AL PORTERO (SUPABASE AUTH) 🔥
+  // Si en la actualización viene un cambio de estado, actuamos en consecuencia
+  if (datosActualizados.estado) {
+    if (datosActualizados.estado === 'INACTIVO') {
+      // Lo baneamos por 100 años (bloquea futuros inicios de sesión)
+      await supabaseAdmin.auth.admin.updateUserById(id, { ban_duration: '876000h' });
+    } else if (datosActualizados.estado === 'ACTIVO') {
+      // Le quitamos el ban por si lo estamos reactivando
+      await supabaseAdmin.auth.admin.updateUserById(id, { ban_duration: 'none' });
+    }
+  }
+
+  return data;
+};
 
 module.exports = {
-  obtenerRoles,
-  obtenerUsuarios,
-  crearUsuarioAuthYPerfil
+  obtenerRoles, obtenerUsuarios,
+  crearUsuarioAuthYPerfil,
+  actualizarPerfilUsuario,
 };

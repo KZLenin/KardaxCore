@@ -10,7 +10,8 @@ import MovementsView from '../../modules/movement/views/MovementsView';
 import MaintenanceView from '../../modules/maintenance/views/MaintenanceView'; 
 import SalesPage from '../../modules/sales/views/SalesView';
 import LocationsView from '../../modules/location/views/LocationsView';
-// import HardwareView from '../../modules/hardware/views/HardwareView'; // Próximamente  
+import UsersView from '../../modules/users/views/UsersView'; 
+
 
 const AppRouter = () => {
   return (
@@ -34,7 +35,7 @@ const AppRouter = () => {
             <Route path="/maintenance" element={<MaintenanceView />} />
             <Route path="/sales" element={<SalesPage />} />
             <Route path="/locations/*" element={<LocationsView />} />
-            {/* <Route path="/hardware" element={<HardwareView />} /> */}
+            <Route path="/users/*" element={<UsersView />} />
           </Route>
         </Route>
 

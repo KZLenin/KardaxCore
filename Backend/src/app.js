@@ -18,7 +18,7 @@ const locationRoutes = require('./modules/locations/locations.routes');
 const movementRoutes = require('./modules/movements/movements.routes');
 const maintenanceRoutes = require('./modules/maintenance/maintenance.routes'); 
 const salesRoutes = require('./modules/sales/sales.routes'); // Nueva ruta para ventas
-
+const usersRoutes = require('./modules/users/users.routes'); // Nueva ruta para usuarios
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger-output.json');
 
@@ -29,6 +29,7 @@ app.use('/api/locations', locationRoutes);      // Sedes, Ciudades, Países
 app.use('/api/movements', movementRoutes);      // Ventas, Traslados (Logística)
 app.use('/api/maintenance', maintenanceRoutes); // Módulo de Mantenimiento (nuevo)
 app.use('/api/ventas', salesRoutes); // Nueva ruta para ventas
+app.use('/api/users', usersRoutes); // Nueva ruta para usuarios
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
