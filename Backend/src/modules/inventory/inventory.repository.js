@@ -10,6 +10,7 @@ const crearItemKardex = async (datosItem) => {
         cat_id: datosItem.categoriaId,
         nombre: datosItem.nombre,
         serie_fabricante: datosItem.serieFabricante,
+        prov_id: datosItem.proveedorId || null,
         detalles: datosItem.detalles || {} // Si no mandan detalles, guardamos un JSON vacío
       }
     ])
@@ -18,6 +19,9 @@ const crearItemKardex = async (datosItem) => {
 
   // Si Supabase tira un error (ej. serie duplicada), lo lanzamos para que el Servicio lo atrape
   if (error) {
+    if (error.code === '23505') { // 23505 es el código SQL de Postgres para UNIQUE_VIOLATION
+      throw new Error('Ya existe un equipo registrado con esa Serie.');
+    }
     throw new Error(`Error en la base de datos: ${error.message}`);
   }
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -42,6 +42,13 @@ const CreateItemSheet = ({ categorias = [], proveedores = [], onCreated }) => {
       unidadMedida: "UNIDAD",
     },
   });
+  //Forzar 1 unidad si el usuario selecciona "UNIDAD" o "U"
+  const watchUnidad = form.watch("unidadMedida");
+  useEffect(() => {
+  if (watchUnidad === 'Unidad' || watchUnidad === 'UNIDAD') {
+    form.setValue("cantidadStock", 1); // Forzamos el valor en el formulario
+  }
+}, [watchUnidad, form]);
 
   // 3. LA FUNCIÓN DE GUARDADO (Misma lógica)
   const onSubmit = async (values) => {
@@ -154,16 +161,34 @@ const CreateItemSheet = ({ categorias = [], proveedores = [], onCreated }) => {
 
             {/* 4. Stock Inicial y Unidad (Grouped en grid con mejor separación) */}
             <div className="grid grid-cols-2 gap-x-4 gap-y-6">
-              <FormField control={form.control} name="cantidadStock" render={({ field }) => (
-                <FormItem className="space-y-1.5">
-                  <FormLabel className="text-sm font-semibold text-zinc-900">Stock Inicial</FormLabel>
-                  <FormControl>
-                    <Input type="number" min="1" className="h-10 border-zinc-200 focus:ring-1 focus:ring-blue-500 shadow-sm" {...field} />
-                  </FormControl>
-                  <FormDescription className="text-xs text-zinc-500">Cantidad con la que entra.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              <FormField control={form.control} name="cantidadStock" render={({ field }) => {
+                // 🔥 3. LA MAGIA VISUAL: Evaluamos si está en unidad
+                const esUnidad = watchUnidad === 'UNIDAD';
+
+                return (
+                  <FormItem className="space-y-1.5">
+                    <FormLabel className="text-sm font-semibold text-zinc-900">Stock Inicial</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        min="1" 
+                        className={`h-10 border-zinc-200 shadow-sm ${esUnidad ? "bg-zinc-100 text-zinc-500 cursor-not-allowed focus-visible:ring-0" : "focus:ring-1 focus:ring-blue-500 bg-white"}`} 
+                        {...field} 
+                        readOnly={esUnidad}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                      />
+                    </FormControl>
+                    {esUnidad ? (
+                      <FormDescription className="text-[10px] text-amber-600 font-medium leading-tight">
+                        Bloqueado a 1 para equipos individuales.
+                      </FormDescription>
+                    ) : (
+                      <FormDescription className="text-xs text-zinc-500">Cantidad con la que entra.</FormDescription>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                );
+              }} />
 
               <FormField control={form.control} name="unidadMedida" render={({ field }) => (
                 <FormItem className="space-y-1.5">

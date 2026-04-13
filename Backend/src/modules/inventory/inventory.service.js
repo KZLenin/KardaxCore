@@ -5,14 +5,26 @@ const registrarEntrada = async (datos) => {
   if (!datos.sedeId || !datos.categoriaId || !datos.nombre) {
     throw new Error('Faltan datos obligatorios para registrar el ítem en el Kardex.');
   }
+
+  const serieLimpia = (!datos.serie_fabricante || datos.serie_fabricante.trim() === '' || datos.serie_fabricante === '0') 
+    ? null 
+    : datos.serie_fabricante.trim();
+
+  let cantidadFinal = Number(datos.cantidad_stock) || 0;
+  const unidadTexto = datos.unidad_medida ? datos.unidad_medida.toUpperCase() : '';
+
+  if (unidadTexto === 'UNIDAD' || unidadTexto === 'U') {
+    cantidadFinal = 1; // Lo forzamos a 1
+  }
+  
   const datosLimpios = {
     ...datos,
     nombre: datos.nombre.trim().toUpperCase(),
+    serie_fabricante: serieLimpia,
+    cantidad_stock: cantidadFinal
   };
   const nuevoItem = await inventoryRepository.crearItemKardex(datosLimpios);
 
-  // 3. (Futuro) Aquí mandaríamos a imprimir a la Crome usando el hardwareService
-  // await hardwareService.imprimirEtiqueta(nuevoItem.codigo_barras, nuevoItem.nombre);
 
   return nuevoItem;
 };

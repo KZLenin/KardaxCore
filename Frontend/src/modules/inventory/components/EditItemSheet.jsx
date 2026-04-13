@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Box, ScanText, Check, Pencil, Lock, Unlock, X, Archive, MapPin, AlignLeft, History, Printer } from "lucide-react";
+import { Loader2, Box, ScanText, Check, Pencil, Lock, Unlock, X, Archive, MapPin, AlignLeft, History, Printer, Hash } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
@@ -21,6 +21,8 @@ const formSchema = z.object({
   proveedorId: z.string().optional(),
   serieFabricante: z.string().optional(),
   codigoBarras: z.string().optional(),
+  cantidadStock: z.coerce.number().min(0, "Debe ser un número válido"), // Puede ser 0 si se agota
+  unidadMedida: z.string().min(1, "Requerido"),
 });
 
 const EditItemSheet = ({ item, categorias = [], proveedores = [], onUpdated, isOpen, setIsOpen }) => {
@@ -34,8 +36,16 @@ const EditItemSheet = ({ item, categorias = [], proveedores = [], onUpdated, isO
 
   const form = useForm({
     resolver: zodResolver(formSchema),
-    defaultValues: { nombre: "", categoriaId: "", proveedorId: "", serieFabricante: "", codigoBarras: "" },
+    defaultValues: { nombre: "", categoriaId: "", proveedorId: "", serieFabricante: "", codigoBarras: "", cantidadStock: 1, unidadMedida: "UNIDAD" },
   });
+
+  const watchUnidad = form.watch("unidadMedida");
+
+  useEffect(() => {
+    if (watchUnidad === 'UNIDAD') {
+      form.setValue("cantidadStock", 1); 
+    }
+  }, [watchUnidad, form]);
 
   useEffect(() => {
     if (item && isOpen) {
@@ -60,17 +70,17 @@ const EditItemSheet = ({ item, categorias = [], proveedores = [], onUpdated, isO
       // 5. Código de Barras
       const codigoSistema = item.codigo_barras || item.codigo || "";
       form.setValue("codigoBarras", codigoSistema === "S/N" ? "" : codigoSistema);
+
+      form.setValue("cantidadStock", item.stock || item.cantidad_stock || 1);
+      form.setValue("unidadMedida", item.unidad || item.unidad_medida || "UNIDAD");
       
     } else if (!isOpen) {
       form.reset();
-      // 🔥 Volvemos a bloquear todo cuando se cierra el panel
       setIsEditing(false); 
     }
   }, [item, isOpen, form]);
 
   const onSubmit = async (values) => {
-    // 📸 CÁMARA 1: Si ves esto, Zod dejó pasar los datos
-    console.log("✅ 1. Zod validó todo correctamente. Valores:", values);
 
     setIsSubmitting(true);
     try {
@@ -79,17 +89,13 @@ const EditItemSheet = ({ item, categorias = [], proveedores = [], onUpdated, isO
         categoria_id: values.categoriaId,
         proveedor_id: values.proveedorId || null,
         serie_fabricante: values.serieFabricante || null,
-        codigo_barras: values.codigoBarras || null
+        codigo_barras: values.codigoBarras || null,
+        cantidad_stock: values.cantidadStock, 
+        unidad_medida: values.unidadMedida
       };
-
-      // 📸 CÁMARA 2: Esto es exactamente lo que viaja por internet
-      console.log("🚀 2. Payload empaquetado para el Backend:", dataToUpdate);
 
       await inventoryService.actualizarEquipo(item.id, dataToUpdate);
       
-      // 📸 CÁMARA 3: Si ves esto, el Backend guardó y devolvió un OK
-      console.log("✅ 3. El Backend guardó los datos y respondió 200 OK.");
-
       toast({ title: "¡Actualizado!", description: "El equipo ha sido modificado con éxito." });
       
       setIsEditing(false); 
@@ -243,6 +249,65 @@ const EditItemSheet = ({ item, categorias = [], proveedores = [], onUpdated, isO
                     <FormMessage />
                   </FormItem>
                 )} />
+              <div className="grid grid-cols-2 gap-x-4 gap-y-6">
+                  <FormField control={form.control} name="cantidadStock" render={({ field }) => {
+                    const esUnidad = watchUnidad === 'UNIDAD';
+                    const isInputReadOnly = !isEditing || esUnidad;
+
+                    let dynamicClass = "pl-9 h-10 border-zinc-200 shadow-sm ";
+                    if (!isEditing) {
+                      dynamicClass += "bg-zinc-100/50 text-zinc-700 cursor-default focus-visible:ring-0 ";
+                    } else if (esUnidad) {
+                      dynamicClass += "bg-zinc-100 text-zinc-500 cursor-not-allowed focus-visible:ring-0 ";
+                    } else {
+                      dynamicClass += "focus:ring-1 focus:ring-blue-500 bg-white ";
+                    }
+
+                    return (
+                      <FormItem className="space-y-1.5">
+                        <FormLabel className="text-sm font-semibold text-zinc-900">Stock Actual</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Hash className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
+                            <Input 
+                              type="number" 
+                              className={dynamicClass} 
+                              {...field} 
+                              readOnly={isInputReadOnly}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                            />
+                          </div>
+                        </FormControl>
+                        {isEditing && esUnidad && (
+                          <FormDescription className="text-[10px] text-amber-600 font-medium leading-tight">
+                            Bloqueado a 1 para UNIDAD.
+                          </FormDescription>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }} />
+
+                  <FormField control={form.control} name="unidadMedida" render={({ field }) => (
+                    <FormItem className="space-y-1.5">
+                      <FormLabel className="text-sm font-semibold text-zinc-900">Unidad de Medida</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={!isEditing}>
+                        <FormControl>
+                          <SelectTrigger className={`h-10 border-zinc-200 ${!isEditing ? "bg-zinc-100/50 text-zinc-700 opacity-100" : "bg-white focus:ring-1 focus:ring-blue-500"}`}>
+                            <SelectValue placeholder="Seleccionar" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="UNIDAD">UNIDAD</SelectItem>
+                          <SelectItem value="CAJA">CAJA</SelectItem>
+                          <SelectItem value="METRO">METRO</SelectItem>
+                          <SelectItem value="ROLLO">ROLLO</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
               </div>
 
               {/* === SECCIÓN 2: DATOS BLOQUEADOS DEL SISTEMA === */}
