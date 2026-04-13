@@ -14,7 +14,7 @@ import MaintenanceView from '../../modules/maintenance/views/MaintenanceView';
 import SalesPage from '../../modules/sales/views/SalesView';
 import LocationsView from '../../modules/location/views/LocationsView';
 import UsersView from '../../modules/users/views/UsersView'; 
-
+import ClientsView from '../../modules/clients/views/ClientsView';
 
 const AppRouter = () => {
   return (
@@ -41,6 +41,7 @@ const AppRouter = () => {
             <Route path="/sales" element={<SalesPage />} />
             <Route path="/locations/*" element={<LocationsView />} />
             <Route path="/users/*" element={<UsersView />} />
+            <Route path="/clients/*" element={<ClientsView />} />
           </Route>
         </Route>
 

@@ -1,72 +1,82 @@
 const repository = require('./client.repository');
 
-const listarClientes = async () => {
-  return await repository.obtenerClientes();
+// ==========================================
+// MÓDULO 1: EMPRESAS (Entes Financieros)
+// ==========================================
+const listarEmpresas = async () => {
+  return await repository.obtenerClientes(); // Trae las empresas con sus sucursales anidadas
 };
 
-const registrarCliente = async (datosFront) => {
-  // 1. Validaciones básicas
-  if (!datosFront.nombre_empresa || !datosFront.contacto_nombre) {
-    throw new Error('El nombre de la empresa y el contacto son obligatorios.');
+const registrarEmpresa = async (datosFront) => {
+  if (!datosFront.nombre_empresa) {
+    throw new Error('El nombre de la empresa es obligatorio.');
   }
 
-  // 2. Preparamos y guardamos el Ente Financiero (Empresa)
   const empresaData = {
     nombre_comercial: datosFront.nombre_empresa.trim().toUpperCase(),
-    // Como en el front unificamos RUC y Razón social en un solo campo, lo guardamos aquí
     razon_social: datosFront.ruc_razon_social ? datosFront.ruc_razon_social.trim() : null,
+    ruc: datosFront.ruc ? datosFront.ruc.trim() : null,
     estado: 'ACTIVO'
   };
 
-  const nuevaEmpresa = await repository.crearEmpresa(empresaData);
+  return await repository.crearEmpresa(empresaData);
+};
 
-  // 3. Preparamos y guardamos el Punto de Entrega (Sucursal Matriz) usando el ID que nos dio el paso anterior
+const actualizarEmpresa = async (id, datosFront) => {
+  if (!id) throw new Error("ID de la empresa es requerido");
+
+  const empresaData = {
+    nombre_comercial: datosFront.nombre_empresa?.trim().toUpperCase(),
+    razon_social: datosFront.ruc_razon_social?.trim() || null,
+    ruc: datosFront.ruc?.trim() || null,
+  };
+
+  return await repository.actualizarEmpresa(id, empresaData);
+};
+
+// ==========================================
+// MÓDULO 2: SUCURSALES (Puntos de Entrega)
+// ==========================================
+const registrarSucursal = async (empresaId, datosFront) => {
+  if (!empresaId || !datosFront.contacto_nombre || !datosFront.nombre_sucursal) {
+    throw new Error('Faltan datos obligatorios para crear la sucursal.');
+  }
+
   const sucursalData = {
-    empresa_id: nuevaEmpresa.id,
-    nombre_sucursal: 'Sede Matriz', // Por defecto la primera es la Matriz
-    es_matriz: true,
+    empresa_id: empresaId,
+    nombre_sucursal: datosFront.nombre_sucursal.trim(), // Ej: "SmartFit Condado"
+    es_matriz: datosFront.es_matriz || false,
     contacto_nombre: datosFront.contacto_nombre.trim(),
     telefono: datosFront.telefono ? datosFront.telefono.trim() : null,
     email: datosFront.email ? datosFront.email.trim().toLowerCase() : null,
     direccion: datosFront.direccion ? datosFront.direccion.trim() : null
   };
 
-  const nuevaSucursal = await repository.crearSucursal(sucursalData);
-
-  // 4. Devolvemos el objeto completo armado para que el Front lo lea feliz
-  return {
-    ...nuevaEmpresa,
-    sucursales: [nuevaSucursal]
-  };
+  return await repository.crearSucursal(sucursalData);
 };
 
-const actualizarCliente = async (empresaId, datosFront) => {
-  if (!empresaId) throw new Error("ID de la empresa es requerido");
+const actualizarSucursal = async (sucursalId, datosFront) => {
+  if (!sucursalId) throw new Error("ID de la sucursal es requerido");
 
-  // 1. Actualizamos la Empresa
-  const empresaData = {
-    nombre_comercial: datosFront.nombre_empresa?.trim().toUpperCase(),
-    razon_social: datosFront.ruc_razon_social?.trim() || null,
+  const sucursalData = {
+    nombre_sucursal: datosFront.nombre_sucursal?.trim(),
+    es_matriz: datosFront.es_matriz,
+    contacto_nombre: datosFront.contacto_nombre?.trim(),
+    telefono: datosFront.telefono?.trim() || null,
+    email: datosFront.email?.trim().toLowerCase() || null,
+    direccion: datosFront.direccion?.trim() || null
   };
-  await repository.actualizarEmpresa(empresaId, empresaData);
 
-  // 2. Actualizamos la Sucursal Principal (Matriz)
-  // Nota: Asumimos que mandas el sucursal_id desde el frontend
-  if (datosFront.sucursal_id) {
-    const sucursalData = {
-      contacto_nombre: datosFront.contacto_nombre?.trim(),
-      telefono: datosFront.telefono?.trim() || null,
-      email: datosFront.email?.trim().toLowerCase() || null,
-      direccion: datosFront.direccion?.trim() || null
-    };
-    await repository.actualizarSucursal(datosFront.sucursal_id, sucursalData);
-  }
+  return await repository.actualizarSucursal(sucursalId, sucursalData);
+};
 
-  return { mensaje: "Cliente actualizado correctamente" };
+const listarSucursales = async (empresaId) => {
+  if (!empresaId) throw new Error("El ID de la empresa es requerido para buscar sus sucursales");
+  return await repository.obtenerSucursalesPorEmpresa(empresaId);
 };
 
 module.exports = {
-  listarClientes,
-  registrarCliente,
-  actualizarCliente
+  listarEmpresas, listarSucursales,
+  registrarEmpresa, registrarSucursal,
+  actualizarEmpresa, actualizarSucursal,
 };

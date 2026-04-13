@@ -7,13 +7,18 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
 import { salesService } from '../services/salesService';
+import SaleDetailsSheet from './SaleDetailsSheet';
 
 const SalesHistoryTable = () => {
   const { toast } = useToast();
   const [ventas, setVentas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
+  const [imprimiendoId, setImprimiendoId] = useState(null); // Estado para saber qué PDF está cargando
 
+  // 🔥 Estados para el Ojito (Modal de Detalles)
+  const [ventaSeleccionadaId, setVentaSeleccionadaId] = useState(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const cargarHistorial = async () => {
     setLoading(true);
     try {
@@ -35,9 +40,24 @@ const SalesHistoryTable = () => {
     return () => clearTimeout(delayDebounceFn);
   }, [busqueda]);
 
-  const handleImprimir = (ventaId) => {
-    toast({ title: "Generando PDF...", description: "Esta función la conectaremos pronto. 🚀" });
-    // Aquí irá la lógica para abrir el PDF en una nueva pestaña
+  const handleVerDetalles = (ventaId) => {
+    setVentaSeleccionadaId(ventaId);
+    setIsDetailsOpen(true);
+  };
+
+  // 🔥 Función de la Impresora (PDF)
+  const handleImprimir = async (ventaId) => {
+    setImprimiendoId(ventaId);
+    toast({ title: "Generando PDF...", description: "Descargando comprobante..." });
+    try {
+      await salesService.descargarPDF(ventaId);
+      toast({ title: "¡PDF Descargado!", description: "Revisa tu carpeta de descargas." });
+    } catch (error) {
+      console.error(error);
+      toast({ title: "Error", description: "El backend aún no tiene la ruta del PDF configurada.", variant: "destructive" });
+    } finally {
+      setImprimiendoId(null);
+    }
   };
 
   return (
@@ -113,11 +133,24 @@ const SalesHistoryTable = () => {
                     {/* BOTONES */}
                     <TableCell className="text-center">
                         <div className="flex items-center justify-center gap-2">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50" title="Ver Detalles">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-blue-600 hover:bg-blue-50" 
+                          title="Ver Detalles"
+                          onClick={() => handleVerDetalles(venta.id)} 
+                        >
                             <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-600 hover:bg-zinc-100" onClick={() => handleImprimir(venta.id)} title="Imprimir Recibo">
-                            <Printer className="h-4 w-4" />
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-zinc-600 hover:bg-zinc-100" 
+                          onClick={() => handleImprimir(venta.id)} 
+                          title="Descargar PDF"
+                          disabled={imprimiendoId === venta.id}
+                        >
+                            {imprimiendoId === venta.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
                         </Button>
                         </div>
                     </TableCell>
@@ -128,6 +161,11 @@ const SalesHistoryTable = () => {
           </Table>
         )}
       </div>
+      <SaleDetailsSheet 
+        ventaId={ventaSeleccionadaId} 
+        isOpen={isDetailsOpen} 
+        setIsOpen={setIsDetailsOpen} 
+      />
     </div>
   );
 };

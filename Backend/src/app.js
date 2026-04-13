@@ -19,6 +19,8 @@ const movementRoutes = require('./modules/movements/movements.routes');
 const maintenanceRoutes = require('./modules/maintenance/maintenance.routes'); 
 const salesRoutes = require('./modules/sales/sales.routes'); // Nueva ruta para ventas
 const usersRoutes = require('./modules/users/users.routes'); // Nueva ruta para usuarios
+const clientsRoutes = require('./modules/clients/client.routes'); // Nueva ruta para clientes
+
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger-output.json');
 
@@ -30,7 +32,7 @@ app.use('/api/movements', movementRoutes);      // Ventas, Traslados (Logística
 app.use('/api/maintenance', maintenanceRoutes); // Módulo de Mantenimiento (nuevo)
 app.use('/api/ventas', salesRoutes); // Nueva ruta para ventas
 app.use('/api/users', usersRoutes); // Nueva ruta para usuarios
-
+app.use('/api/clientes', clientsRoutes); // Nueva ruta para clientes
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // --- Ruta de salud (Healthcheck) ---

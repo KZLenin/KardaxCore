@@ -1,18 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, User, FileText, Tag, Trash2, CheckCircle, ShieldCheck, DollarSign, ScanBarcode } from 'lucide-react';
+import { ShoppingCart, FileText, Tag, Trash2, CheckCircle, ShieldCheck, DollarSign, ScanBarcode, Building2, MapPin } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
-import { salesService } from '../services/salesService'; // Ajusta la ruta
-import { inventoryService } from '../../inventory/services/inventoryService'; // Ajusta la ruta
+import { salesService } from '../services/salesService'; 
+import { inventoryService } from '../../inventory/services/inventoryService'; 
+import { clientService } from '../../clients/services/clientService'; // 🔥 Importamos el servicio de clientes
 
 const B2BSalesTerminal = () => {
   const { toast } = useToast();
   
-  // 1. Estados de la Cabecera Comercial
-  const [clienteNombre, setClienteNombre] = useState('');
+  // 1. Estados de la Cabecera Comercial (NUEVOS: Empresa y Sucursal)
+  const [empresas, setEmpresas] = useState([]);
+  const [sucursales, setSucursales] = useState([]);
+  const [empresaId, setEmpresaId] = useState("");
+  const [sucursalId, setSucursalId] = useState("");
+  
   const [numeroComprobante, setNumeroComprobante] = useState('');
   const [poCliente, setPoCliente] = useState('');
   const [notas, setNotas] = useState('');
@@ -23,24 +28,56 @@ const B2BSalesTerminal = () => {
   const [carrito, setCarrito] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Cargar inventario al montar el componente
+  // 🔥 3. Cargar inventario y empresas al montar el componente
   useEffect(() => {
-    const cargarInventario = async () => {
+    const cargarDatosIniciales = async () => {
       try {
-        const data = await inventoryService.getAll({});
-        // Filtramos solo los que tienen stock > 0
-        setInventario(data.filter(item => item.stock > 0));
+        // Ejecutamos ambas peticiones al mismo tiempo para que cargue más rápido
+        const [invData, empData] = await Promise.all([
+          inventoryService.getAll({}),
+          clientService.obtenerEmpresas()
+        ]);
+        
+        setInventario(invData.filter(item => item.stock > 0));
+        setEmpresas(empData);
       } catch (error) {
-        // 🔥 FIX ESLINT: Ahora usamos la variable 'error' imprimiéndola en consola
-        console.error("Error al cargar inventario:", error);
-        toast({ title: "Error", description: "No se pudo cargar el inventario", variant: "destructive" });
+        console.error("Error al cargar datos iniciales:", error);
+        toast({ title: "Error", description: "No se pudieron cargar los catálogos.", variant: "destructive" });
       }
     };
-    cargarInventario();
+    cargarDatosIniciales();
   }, []);
 
-  // --- FUNCIONES DEL ESCÁNER Y CARRITO (ACTUALIZADAS Y BLINDADAS) ---
- const procesarBusquedaManual = (e) => {
+  // 🔥 4. Cargar sucursales cada vez que se selecciona una empresa
+  useEffect(() => {
+    if (empresaId) {
+      const cargarSucursales = async () => {
+        try {
+          const data = await clientService.obtenerSucursalesPorEmpresa(empresaId);
+          setSucursales(data);
+          
+          // Auto-seleccionar la matriz si existe
+          const matriz = data.find(s => s.es_matriz);
+          if (matriz) {
+            setSucursalId(matriz.id);
+          } else if (data.length > 0) {
+            setSucursalId(data[0].id); // Si no hay matriz, selecciona la primera
+          } else {
+            setSucursalId("");
+          }
+        } catch (error) {
+          console.error("Error al cargar sedes:", error);
+        }
+      };
+      cargarSucursales();
+    } else {
+      setSucursales([]);
+      setSucursalId("");
+    }
+  }, [empresaId]);
+
+  // --- FUNCIONES DEL ESCÁNER Y CARRITO ---
+  const procesarBusquedaManual = (e) => {
     if (e && e.type === 'keydown' && e.key !== 'Enter') return;
     if (e) e.preventDefault(); 
 
@@ -49,7 +86,6 @@ const B2BSalesTerminal = () => {
 
     if (!codigoBuscado) return;
 
-    // 🔥 FIX: Buscamos por 'codigo' o por 'codigo_barras' por si acaso
     const producto = inventario.find(i => {
       const codigoAComparar = String(i.codigo || i.codigo_barras || '').trim().toLowerCase();
       return codigoAComparar === codigoBuscado;
@@ -65,12 +101,19 @@ const B2BSalesTerminal = () => {
   };
 
   const procesarIngresoAlCarrito = (producto) => {
-    // 🔥 FIX ESTADO CONGELADO: Usamos prevCarrito para reaccionar al instante
     setCarrito(prevCarrito => {
       const itemExistente = prevCarrito.find(item => item.itemId === producto.id);
+      
+      // BLINDAJE RESTAURADO: Detectamos si es unidad desde la base de datos
+      const esUnidad = String(producto.unidad_medida || producto.unidad || '').toUpperCase() === 'UNIDAD';
 
       if (itemExistente) {
-        // Si ya está, le sumamos 1
+        // Si ya existe y es unidad, no dejamos sumar más
+        if (esUnidad) {
+          toast({ title: "Acción Bloqueada", description: `No puedes vender más de 1 unidad del mismo equipo (${producto.nombre}).`, variant: "destructive" });
+          return prevCarrito;
+        }
+
         if (itemExistente.cantidad < producto.stock) {
           toast({ title: "Suma rápida", description: `+1 ${producto.nombre} añadido.` });
           return prevCarrito.map(item => 
@@ -81,7 +124,6 @@ const B2BSalesTerminal = () => {
           return prevCarrito;
         }
       } else {
-        // Si es nuevo, lo metemos al carrito
         toast({ title: "Escaneado", description: `${producto.nombre} listo para vender.` });
         return [...prevCarrito, {
           itemId: producto.id,
@@ -90,7 +132,8 @@ const B2BSalesTerminal = () => {
           stockMaximo: producto.stock,
           cantidad: 1,
           precioUnitario: 0,
-          garantiaDias: 0
+          garantiaDias: 0,
+          unidad: esUnidad ? 'UNIDAD' : 'OTRO' 
         }];
       }
     });
@@ -99,9 +142,15 @@ const B2BSalesTerminal = () => {
   const actualizarItemCarrito = (itemId, campo, valor) => {
     setCarrito(carrito.map(item => {
       if (item.itemId === itemId) {
-        if (campo === 'cantidad' && valor > item.stockMaximo) {
-          toast({ title: "Stock Insuficiente", description: `Solo hay ${item.stockMaximo} disponibles.`, variant: "destructive" });
-          return { ...item, cantidad: item.stockMaximo };
+        if (campo === 'cantidad') {
+          if (item.unidad === 'UNIDAD' && valor > 1) {
+            toast({ title: "Acción Bloqueada", description: "Los equipos individuales están bloqueados a 1.", variant: "destructive" });
+            return { ...item, cantidad: 1 };
+          }
+          if (valor > item.stockMaximo) {
+            toast({ title: "Stock Insuficiente", description: `Solo hay ${item.stockMaximo} disponibles.`, variant: "destructive" });
+            return { ...item, cantidad: item.stockMaximo };
+          }
         }
         return { ...item, [campo]: valor };
       }
@@ -118,33 +167,27 @@ const B2BSalesTerminal = () => {
   };
 
   // --- ENVÍO AL BACKEND ---
- // --- ENVÍO AL BACKEND (MODO DIAGNÓSTICO) ---
   const procesarVenta = async () => {
-    console.log("🚀 1. Botón clickeado. Iniciando validaciones...");
-
     // 🚨 Validaciones
-    if (!clienteNombre) {
-      console.warn("⚠️ 2. Cancelado: Falta el nombre del cliente.");
-      return toast({ title: "Error", description: "El nombre del cliente es obligatorio.", variant: "destructive" });
+    if (!empresaId || !sucursalId) {
+      return toast({ title: "Error", description: "Debes seleccionar la Empresa y la Sede de entrega.", variant: "destructive" });
     }
     
     if (carrito.length === 0) {
-      console.warn("⚠️ 2. Cancelado: El carrito está vacío.");
       return toast({ title: "Error", description: "El carrito está vacío.", variant: "destructive" });
     }
 
     const preciosEnCero = carrito.some(item => item.precioUnitario <= 0);
     if (preciosEnCero) {
-      console.warn("⚠️ 2. Cancelado: Hay equipos con precio $0.");
       return toast({ title: "Error", description: "Hay equipos con precio $0 en el carrito.", variant: "destructive" });
     }
 
-    console.log("✅ 3. Validaciones aprobadas. Preparando el paquete (payload)...");
     setIsSubmitting(true);
     
     try {
       const payload = {
-        clienteNombre,
+        empresaId,   // 🔥 Enviamos el ID de la empresa
+        sucursalId,  // 🔥 Enviamos el ID de la sede
         numeroComprobante,
         poCliente,
         notasAdicionales: notas,
@@ -156,23 +199,18 @@ const B2BSalesTerminal = () => {
         }))
       };
 
-      console.log("📦 4. Enviando este JSON al Backend:", payload);
-
-      // Aquí ocurre la magia de red
-      const respuesta = await salesService.registrarVenta(payload);
+      await salesService.registrarVenta(payload);
       
-      console.log("🎉 5. ¡Backend respondió con ÉXITO!", respuesta);
-      toast({ title: "¡Venta Exitosa!", description: "Stock descontado e historial guardado." });
+      toast({ title: "¡Venta Exitosa!", description: "Stock descontado e historial de Kardex guardado." });
       
       // Limpiar terminal
-      setClienteNombre(''); setNumeroComprobante(''); setPoCliente(''); setNotas(''); setCarrito([]);
+      setEmpresaId(''); setSucursalId(''); setNumeroComprobante(''); setPoCliente(''); setNotas(''); setCarrito([]);
       
     } catch (error) {
-      console.error("🚨 5. El Backend rechazó la petición. Motivo:", error);
+      console.error("Error en Venta:", error);
       toast({ title: "Error en Venta", description: error.message, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
-      console.log("🛑 6. Fin de la ejecución.");
     }
   };
 
@@ -187,21 +225,67 @@ const B2BSalesTerminal = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* === COLUMNA IZQUIERDA: DATOS DEL CLIENTE === */}
         <div className="bg-white p-5 rounded-xl border border-zinc-200 shadow-sm h-fit space-y-4">
-          <h3 className="font-semibold text-zinc-800 border-b pb-2">Datos Comerciales</h3>
+          <h3 className="font-semibold text-zinc-800 border-b pb-2 flex items-center gap-2">
+            Datos Comerciales
+          </h3>
           
-          <div className="space-y-3">
+          <div className="space-y-4">
+            
+            {/* 🔥 NUEVO: SELECTOR DE EMPRESA */}
             <div>
-              <label className="text-xs font-semibold text-zinc-500 uppercase flex items-center gap-1 mb-1"><User className="w-3 h-3"/> Cliente (Gimnasio / Empresa) *</label>
-              <Input placeholder="Ej. SmartFit Condado" value={clienteNombre} onChange={(e) => setClienteNombre(e.target.value)} />
+              <label className="text-xs font-semibold text-zinc-500 uppercase flex items-center gap-1 mb-1">
+                <Building2 className="w-3 h-3"/> Empresa (RUC) *
+              </label>
+              <Select value={empresaId} onValueChange={setEmpresaId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Seleccionar empresa..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {empresas.length === 0 ? (
+                    <SelectItem value="none" disabled>No hay empresas</SelectItem>
+                  ) : (
+                    empresas.map(emp => (
+                      <SelectItem key={emp.id} value={emp.id}>{emp.nombre_comercial}</SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 🔥 NUEVO: SELECTOR DE SUCURSAL */}
+            <div>
+              <label className="text-xs font-semibold text-zinc-500 uppercase flex items-center gap-1 mb-1">
+                <MapPin className="w-3 h-3"/> Sede de Entrega *
+              </label>
+              <Select value={sucursalId} onValueChange={setSucursalId} disabled={!empresaId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="¿A qué sede enviamos?" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sucursales.length === 0 ? (
+                    <SelectItem value="none" disabled>Esta empresa no tiene sedes</SelectItem>
+                  ) : (
+                    sucursales.map(suc => (
+                      <SelectItem key={suc.id} value={suc.id}>
+                        {suc.nombre_sucursal} {suc.es_matriz && " (Matriz)"}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
             </div>
             
             <div>
-              <label className="text-xs font-semibold text-zinc-500 uppercase flex items-center gap-1 mb-1"><FileText className="w-3 h-3"/> Nro. Factura / Recibo</label>
+              <label className="text-xs font-semibold text-zinc-500 uppercase flex items-center gap-1 mb-1">
+                <FileText className="w-3 h-3"/> Nro. Factura / Recibo
+              </label>
               <Input placeholder="Ej. FAC-00123" value={numeroComprobante} onChange={(e) => setNumeroComprobante(e.target.value)} />
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-zinc-500 uppercase flex items-center gap-1 mb-1"><Tag className="w-3 h-3"/> PO del Cliente</label>
+              <label className="text-xs font-semibold text-zinc-500 uppercase flex items-center gap-1 mb-1">
+                <Tag className="w-3 h-3"/> PO del Cliente
+              </label>
               <Input placeholder="Ej. PO-998877" value={poCliente} onChange={(e) => setPoCliente(e.target.value)} />
             </div>
 
@@ -215,10 +299,8 @@ const B2BSalesTerminal = () => {
         {/* === COLUMNA DERECHA: EL CARRITO === */}
         <div className="lg:col-span-2 space-y-4">
           
-          {/* Buscador para agregar al carrito */}
           <div className="bg-white p-4 rounded-xl border border-zinc-200 shadow-sm flex items-end gap-4">
             <div className="flex-1">
-              {/* 🔥 EL NUEVO ESCÁNER CON BOTÓN AGREGAR 🔥 */}
               <div className="bg-white p-5 rounded-xl border-2 border-blue-100 shadow-sm flex flex-col gap-2">
                 <label className="text-xs font-bold text-blue-600 uppercase tracking-wider flex items-center gap-2">
                   <ScanBarcode className="w-4 h-4" /> Escanear o Buscar Equipo
@@ -245,7 +327,6 @@ const B2BSalesTerminal = () => {
             </div>
           </div>
 
-          {/* Tabla del Carrito */}
           <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
@@ -263,43 +344,53 @@ const B2BSalesTerminal = () => {
                   {carrito.length === 0 ? (
                     <tr><td colSpan="6" className="text-center py-8 text-zinc-400">El carrito está vacío. Busca un equipo arriba.</td></tr>
                   ) : (
-                    carrito.map((item) => (
-                      <tr key={item.itemId} className="border-b last:border-0 hover:bg-zinc-50/50">
-                        <td className="px-4 py-3">
-                          <p className="font-semibold text-zinc-900">{item.nombre}</p>
-                          <p className="text-xs text-zinc-500">{item.codigo}</p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Input type="number" min="1" max={item.stockMaximo} value={item.cantidad} onChange={(e) => actualizarItemCarrito(item.itemId, 'cantidad', Number(e.target.value))} className="h-8 w-full text-center" />
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="relative">
-                            <DollarSign className="w-3 h-3 absolute left-2 top-2.5 text-zinc-400" />
-                            <Input type="number" min="0" step="0.01" value={item.precioUnitario} onChange={(e) => actualizarItemCarrito(item.itemId, 'precioUnitario', Number(e.target.value))} className="h-8 w-full pl-6" />
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="relative">
-                            <ShieldCheck className="w-3 h-3 absolute left-2 top-2.5 text-zinc-400" />
-                            <Input type="number" min="0" placeholder="Días" value={item.garantiaDias} onChange={(e) => actualizarItemCarrito(item.itemId, 'garantiaDias', Number(e.target.value))} className="h-8 w-full pl-6" />
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-right font-mono font-medium text-zinc-900">
-                          ${(item.cantidad * item.precioUnitario).toFixed(2)}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <Button variant="ghost" size="icon" onClick={() => eliminarDelCarrito(item.itemId)} className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))
+                    carrito.map((item) => {
+                      const esUnidad = item.unidad === 'UNIDAD';
+                      return (
+                        <tr key={item.itemId} className="border-b last:border-0 hover:bg-zinc-50/50">
+                          <td className="px-4 py-3">
+                            <p className="font-semibold text-zinc-900">{item.nombre}</p>
+                            <p className="text-xs text-zinc-500">{item.codigo}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Input 
+                              type="number" 
+                              min="1" 
+                              max={esUnidad ? 1 : item.stockMaximo} 
+                              value={item.cantidad} 
+                              onChange={(e) => actualizarItemCarrito(item.itemId, 'cantidad', Number(e.target.value))} 
+                              className={`h-8 w-full text-center ${esUnidad ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed focus-visible:ring-0' : ''}`}
+                              readOnly={esUnidad}
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="relative">
+                              <DollarSign className="w-3 h-3 absolute left-2 top-2.5 text-zinc-400" />
+                              <Input type="number" min="0" step="0.01" value={item.precioUnitario} onChange={(e) => actualizarItemCarrito(item.itemId, 'precioUnitario', Number(e.target.value))} className="h-8 w-full pl-6" />
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="relative">
+                              <ShieldCheck className="w-3 h-3 absolute left-2 top-2.5 text-zinc-400" />
+                              <Input type="number" min="0" placeholder="Días" value={item.garantiaDias} onChange={(e) => actualizarItemCarrito(item.itemId, 'garantiaDias', Number(e.target.value))} className="h-8 w-full pl-6" />
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono font-medium text-zinc-900">
+                            ${(item.cantidad * item.precioUnitario).toFixed(2)}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <Button variant="ghost" size="icon" onClick={() => eliminarDelCarrito(item.itemId)} className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
             </div>
             
-            {/* FOOTER TOTALES */}
             <div className="bg-zinc-900 text-white p-4 flex items-center justify-between">
               <div className="text-zinc-400 text-sm">
                 Total ítems: <span className="text-white font-bold">{carrito.length}</span>

@@ -21,14 +21,14 @@ const crearDetallesVenta = async (detalles) => {
 };
 
 const getHistorial = async (buscarTerm) => {
-    // 1. Hacemos un JOIN con ventas_detalle usando la sintaxis de Supabase
     let query = supabase
       .from('ventas')
       .select(`
         *,
-        ventas_detalle ( cantidad )
+        ventas_detalle ( cantidad ),
+        empresa:clientes_empresas(nombre_comercial) -- 🔥 Traemos el nombre real del cliente
       `)
-      .order('fecha_venta', { ascending: false }); // Tu columna real
+      .order('fecha_venta', { ascending: false });
 
     if (buscarTerm) {
       query = query.or(`cliente_nombre.ilike.%${buscarTerm}%,numero_comprobante.ilike.%${buscarTerm}%`);
@@ -37,14 +37,44 @@ const getHistorial = async (buscarTerm) => {
     const { data, error } = await query;
     if (error) throw error;
     
-    // 2. Mapeamos los resultados para sumar cuántos equipos tiene cada venta
     const historialMapeado = data.map(venta => ({
       ...venta,
-      // Reduce suma todas las "cantidades" del array de ventas_detalle
+
+      cliente_nombre: venta.empresa?.nombre_comercial || venta.cliente_nombre,
       total_items: venta.ventas_detalle.reduce((suma, item) => suma + item.cantidad, 0)
     }));
 
     return historialMapeado;
   }
 
-module.exports = { crearCabeceraVenta, crearDetallesVenta, getHistorial };
+  const obtenerDetalleVenta = async (ventaId) => {
+  const { data, error } = await supabase
+    .from('ventas')
+    // 🔥 AQUÍ ESTÁ LA MAGIA CORREGIDA
+    .select(`
+      *,
+      items:ventas_detalle (
+        cantidad,
+        precio_unitario,
+        garantia_dias_cliente,
+        item:inventario (nombre)
+      )
+    `)
+    .eq('id', ventaId)
+    .single();
+
+  if (error) throw new Error(`Error BD Detalles Venta: ${error.message}`);
+
+  // Formateamos la respuesta para el Frontend
+  return {
+    ...data,
+    items: data.items.map(i => ({
+      item_nombre: i.item?.nombre || 'Equipo desconocido',
+      cantidad: i.cantidad,
+      precio_unitario: i.precio_unitario,
+      garantia_dias: i.garantia_dias_cliente // Usamos el nombre real de tu columna
+    }))
+  };
+};
+
+module.exports = { crearCabeceraVenta, crearDetallesVenta, getHistorial, obtenerDetalleVenta };

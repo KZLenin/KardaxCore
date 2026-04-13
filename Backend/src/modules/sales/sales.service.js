@@ -1,20 +1,22 @@
 const salesRepository = require('./sales.repository');
-// 🔥 IMPORTAMOS TU MOTOR LOGÍSTICO EXISTENTE 🔥
-const movementsService = require('../movements/movements.service'); // Ajusta la ruta si es necesario
+const movementsService = require('../movements/movements.service');
 
 const procesarVentaB2B = async (datosVenta, vendedorId) => {
-  const { clienteNombre, numeroComprobante, poCliente, notasAdicionales, items } = datosVenta;
+  // 🔥 1. AHORA EXTRAEMOS LOS IDs QUE MANDA EL FRONTEND
+  const { empresaId, sucursalId, numeroComprobante, poCliente, notasAdicionales, items } = datosVenta;
 
-  if (!clienteNombre || !items || items.length === 0) {
-    throw new Error('El nombre del cliente y al menos un artículo son obligatorios.');
+  // Validamos con los nuevos campos
+  if (!empresaId || !sucursalId || !items || items.length === 0) {
+    throw new Error('Empresa, sucursal y al menos un artículo son obligatorios.');
   }
 
-  // 1. Calculamos el total matemático
   const totalVenta = items.reduce((total, item) => total + (item.cantidad * item.precioUnitario), 0);
 
-  // 2. Creamos el "Recibo" maestro
+  // 🔥 2. GUARDAMOS LA VENTA CON LOS PUENTES RELACIONALES
   const nuevaVenta = await salesRepository.crearCabeceraVenta({
-    cliente_nombre: clienteNombre,
+    empresa_id: empresaId,       // Apunta a clientes_empresas
+    sucursal_id: sucursalId,     // Apunta a clientes_sucursales
+    cliente_nombre: 'Venta B2B', // Texto por defecto por si tu BD aún lo exige
     numero_comprobante: numeroComprobante || null,
     po_cliente: poCliente || null,
     notas_adicionales: notasAdicionales || '',
@@ -24,14 +26,13 @@ const procesarVentaB2B = async (datosVenta, vendedorId) => {
 
   const detallesParaGuardar = [];
 
-  // 3. Procesamos cada artículo en el carrito de compras
   for (const item of items) {
-    // A. 🚚 DISPARAMOS EL KARDEX LOGÍSTICO: Descuenta stock y guarda historial
+    // A. KARDEX LOGÍSTICO
     await movementsService.crearMovimiento({
       itemId: item.itemId,
       cantidad: item.cantidad,
       tipoMovimiento: 'SALIDA',
-      destinoNombre: clienteNombre, // El destino es el cliente
+      destinoNombre: 'Cliente B2B', // Opcional: Podrías buscar el nombre real de la sucursal
       precioVenta: item.precioUnitario,
       garantiaDias: item.garantiaDias,
       numeroComprobante: numeroComprobante, 
@@ -39,7 +40,7 @@ const procesarVentaB2B = async (datosVenta, vendedorId) => {
       ventaId: nuevaVenta.id
     }, vendedorId);
 
-    // B. 🛒 PREPARAMOS EL DETALLE COMERCIAL: Para tu factura
+    // B. DETALLE COMERCIAL
     detallesParaGuardar.push({
       venta_id: nuevaVenta.id,
       item_id: item.itemId,
@@ -49,17 +50,14 @@ const procesarVentaB2B = async (datosVenta, vendedorId) => {
     });
   }
 
-  // 4. Guardamos todos los detalles en la base de datos de un solo golpe
   await salesRepository.crearDetallesVenta(detallesParaGuardar);
 
   return { ...nuevaVenta, total_items: items.length };
 };
 
 const obtenerHistorial = async (query) => {
-  const { buscar } = query; // Extraemos el término de búsqueda
-  // Aquí podrías agregar más lógica de negocio en el futuro si la necesitas
-  const historial = await salesRepository.getHistorial(buscar);
-  return historial;
+  const { buscar } = query;
+  return await salesRepository.getHistorial(buscar);
 }
 
 module.exports = { procesarVentaB2B, obtenerHistorial };
