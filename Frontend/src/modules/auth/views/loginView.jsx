@@ -97,7 +97,7 @@ const LoginPage = () => {
 
         <footer className="px-6 pb-6 text-center">
           <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-semibold">
-            Powered by Arkz Tech & SOI Soluciones
+            Powered by SOI Soluciones
           </p>
         </footer>
       </Card>
