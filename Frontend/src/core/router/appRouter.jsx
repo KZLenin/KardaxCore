@@ -3,6 +3,9 @@ import ProtectedRoute from './ProtectedRoute';
 
 // Importaremos las vistas (crearemos estos archivos en el siguiente paso)
 import LoginView from '../../modules/auth/views/LoginView';
+import ForgotPasswordView from '../../modules/auth/views/ForgotPasswordView';
+import ResetPasswordView from '../../modules/auth/views/ResetPasswordView';
+
 import DashboardView from '../../modules/dashboard/views/DashboardView';
 import MainLayout from '../../shared/layout/MainLayout';
 import InventarioView from '../../modules/inventory/views/InventoryView';
@@ -21,6 +24,8 @@ const AppRouter = () => {
             1. RUTAS PÚBLICAS
             ========================================== */}
         <Route path="/login" element={<LoginView />} /> 
+        <Route path="/recuperar-password" element={<ForgotPasswordView />} />
+        <Route path="/reset-password" element={<ResetPasswordView />} />
 
         {/* ==========================================
             2. RUTAS PROTEGIDAS (Solo con Token)

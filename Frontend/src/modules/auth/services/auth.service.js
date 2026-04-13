@@ -52,6 +52,20 @@ const authService = {
     localStorage.removeItem('kardax_token');
     localStorage.removeItem('kardax_user');
     window.location.href = '/login'; // Expulsamos al usuario al login
+  },
+  solicitarRecuperacion: async (email) => {
+    const response = await httpClient.post('/auth/recuperar-password', { email });
+    return response.data;
+  },
+
+  cambiarPassword: async (token, newPassword) => {
+    // 🔥 TRUCO MAGISTRAL: Mandamos el token de recuperación en el Header manualmente,
+    // porque el usuario aún no ha iniciado sesión de verdad.
+    const response = await httpClient.post('/auth/cambiar-password', 
+      { newPassword },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
   }
 };
 

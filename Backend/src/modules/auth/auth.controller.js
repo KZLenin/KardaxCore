@@ -54,15 +54,18 @@ const solicitarRecuperacion = async (req, res) => {
   };
   
   const cambiarPassword = async (req, res) => {
-    try {
-      const { newPassword } = req.body;
-      await authService.procesarNuevaPassword(newPassword);
-      
-      res.status(200).json({ mensaje: '¡Contraseña actualizada con éxito!' });
-    } catch (error) {
-      res.status(400).json({ error: error.message });
-    }
-  };
+  try {
+    const { newPassword } = req.body;
+    // 🔥 Sacamos el ID que nuestro middleware 'protegerRuta' descubrió del token
+    const userId = req.usuario.id; 
+    
+    await authService.procesarNuevaPassword(userId, newPassword);
+    
+    res.status(200).json({ mensaje: '¡Contraseña actualizada con éxito!' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
 
   const getUsuarios = async (req, res) => {
     try {

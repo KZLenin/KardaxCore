@@ -1,4 +1,7 @@
+const { createClient } = require('@supabase/supabase-js');
 const supabase = require('../../config/supabase');
+
+const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
 const iniciarSesion = async (email, password) => {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -53,14 +56,15 @@ const solicitarRecuperacion = async (email) => {
     return data;
   };
   
-  const actualizarPassword = async (newPassword) => {
-    // Como el usuario usará el token temporal que le llegó al correo para llegar a esta ruta,
-    // Supabase ya sabrá quién es. Solo le pasamos la nueva clave.
-    const { data, error } = await supabase.auth.updateUser({ password: newPassword });
-    
-    if (error) throw new Error(`Error al actualizar clave: ${error.message}`);
-    return data;
-  };
+const actualizarPassword = async (userId, newPassword) => {
+
+  const { data, error } = await supabaseAdmin.auth.admin.updateUserById(userId, { 
+    password: newPassword 
+  });
+  
+  if (error) throw new Error(`Error al actualizar clave: ${error.message}`);
+  return data;
+};
 
   const obtenerTodosLosUsuarios = async () => {
     const { data, error } = await supabase

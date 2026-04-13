@@ -42,12 +42,13 @@ const procesarRecuperacion = async (email) => {
     return await authRepository.solicitarRecuperacion(email);
   };
   
-  const procesarNuevaPassword = async (newPassword) => {
-    if (!newPassword || newPassword.length < 6) {
-      throw new Error('La nueva contraseña debe tener al menos 6 caracteres.');
-    }
-    return await authRepository.actualizarPassword(newPassword);
-  };
+  const procesarNuevaPassword = async (userId, newPassword) => {
+  if (!newPassword || newPassword.length < 6) {
+    throw new Error('La nueva contraseña debe tener al menos 6 caracteres.');
+  }
+  // Le pasamos el userId al repo
+  return await authRepository.actualizarPassword(userId, newPassword);
+};
 
 const procesarRegistro = async (datosUsuario) => {
   const { email, password, nombre_completo, rol_id, sede_id } = datosUsuario;

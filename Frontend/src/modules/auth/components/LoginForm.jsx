@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -36,9 +37,12 @@ const LoginForm = ({ onSubmit, isLoading }) => {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label htmlFor="password" className="text-zinc-600">Contraseña</Label>
-          <a href="#" className="text-xs font-medium text-blue-600 hover:text-blue-800">
+          <Link 
+            to="/recuperar-password" 
+            className="text-xs font-medium text-blue-600 hover:text-blue-800"
+          >
             ¿Olvidaste tu contraseña?
-          </a>
+          </Link>
         </div>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

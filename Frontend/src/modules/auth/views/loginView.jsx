@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate} from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ShieldCheck, Lock, Mail, Loader2 } from "lucide-react";
@@ -81,7 +81,11 @@ const LoginPage = () => {
           )}
 
           {step === 'login' ? (
-            <LoginForm onSubmit={onLoginSubmit} isLoading={loading} />
+            <div className="space-y-4">
+              <LoginForm onSubmit={onLoginSubmit} isLoading={loading} />
+              
+              
+            </div>
           ) : (
             <TwoFactorForm 
               onSubmit={on2FASubmit} 
