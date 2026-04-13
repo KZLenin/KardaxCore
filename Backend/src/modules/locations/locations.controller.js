@@ -42,7 +42,38 @@ const getSedes = async (req, res) => {
   catch (error) { res.status(400).json({ error: error.message }); }
 };
 
+const actualizarPais = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const paisActualizado = await service.actualizarPais(id, req.body);
+    res.status(200).json({ mensaje: 'País actualizado', data: paisActualizado });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+const actualizarCiudad = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const ciudadActualizada = await service.actualizarCiudad(id, req.body);
+    res.status(200).json({ mensaje: 'Ciudad actualizada', data: ciudadActualizada });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+const actualizarSede = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const sedeActualizada = await service.actualizarSede(id, req.body);
+    res.status(200).json({ mensaje: 'Sede actualizada', data: sedeActualizada });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
 module.exports = { 
   crearPais, crearCiudad, crearSede, 
-  getPaises, getCiudades, getSedes
+  getPaises, getCiudades, getSedes,
+  actualizarPais, actualizarCiudad, actualizarSede,
 };

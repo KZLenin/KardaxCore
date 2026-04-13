@@ -37,9 +37,44 @@ const obtenerSedes = async () => {
   return data;
 };
 
+const actualizarPais = async (id, datosActualizados) => {
+  const { data, error } = await supabase
+    .from('paises')
+    .update(datosActualizados)
+    .eq('id', id)
+    .select()
+    .single();
 
+  if (error) throw new Error(`Error BD al actualizar país: ${error.message}`);
+  return data;
+};
+
+const actualizarCiudad = async (id, datosActualizados) => {
+  const { data, error } = await supabase
+    .from('ciudades')
+    .update(datosActualizados)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw new Error(`Error BD al actualizar ciudad: ${error.message}`);
+  return data;
+};
+
+const actualizarSede = async (id, datosActualizados) => {
+  const { data, error } = await supabase
+    .from('sedes')
+    .update(datosActualizados)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw new Error(`Error BD al actualizar sede: ${error.message}`);
+  return data;
+};
 
 module.exports = { 
   crearPais, crearCiudad, crearSede,
-  obtenerPaises, obtenerCiudades, obtenerSedes 
+  obtenerPaises, obtenerCiudades, obtenerSedes,
+  actualizarPais, actualizarCiudad, actualizarSede,
 };

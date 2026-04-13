@@ -25,11 +25,41 @@ const registrarSede = async (datos) => {
   });
 };
 
+const actualizarPais = async (id, datos) => {
+  if (!id) throw new Error('El ID del país es obligatorio.');
+  
+  const datosLimpios = { ...datos };
+  if (datosLimpios.nombre) datosLimpios.nombre = datosLimpios.nombre.trim();
+  if (datosLimpios.prefijo) datosLimpios.prefijo = datosLimpios.prefijo.trim().toUpperCase();
+
+  return await repository.actualizarPais(id, datosLimpios);
+};
+
+const actualizarCiudad = async (id, datos) => {
+  if (!id) throw new Error('El ID de la ciudad es obligatorio.');
+  
+  const datosLimpios = { ...datos };
+  if (datosLimpios.nombre) datosLimpios.nombre = datosLimpios.nombre.trim();
+
+  return await repository.actualizarCiudad(id, datosLimpios);
+};
+
+const actualizarSede = async (id, datos) => {
+  if (!id) throw new Error('El ID de la sede es obligatorio.');
+  
+  const datosLimpios = { ...datos };
+  if (datosLimpios.nombre) datosLimpios.nombre = datosLimpios.nombre.trim();
+  if (datosLimpios.direccion) datosLimpios.direccion = datosLimpios.direccion.trim();
+
+  return await repository.actualizarSede(id, datosLimpios);
+};
+
 const listarPaises = async () => await repository.obtenerPaises();
 const listarCiudades = async () => await repository.obtenerCiudades();
 const listarSedes = async () => await repository.obtenerSedes();
 
 module.exports = { 
   registrarPais, registrarCiudad, registrarSede,
-  listarPaises, listarCiudades, listarSedes 
+  listarPaises, listarCiudades, listarSedes,
+  actualizarPais, actualizarCiudad, actualizarSede,
 };
