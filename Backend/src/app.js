@@ -16,7 +16,6 @@ const authRoutes = require('./modules/auth/auth.routes');
 const inventoryRoutes = require('./modules/inventory/inventory.routes');
 const locationRoutes = require('./modules/locations/locations.routes');
 const movementRoutes = require('./modules/movements/movements.routes');
-const itAssetsRoutes = require('./modules/it-assets/it-assets.routes');
 const maintenanceRoutes = require('./modules/maintenance/maintenance.routes'); 
 const salesRoutes = require('./modules/sales/sales.routes'); // Nueva ruta para ventas
 
@@ -28,7 +27,6 @@ app.use('/api/auth', authRoutes);               // Login, Registro, 2FA, Recuper
 app.use('/api/inventory', inventoryRoutes);     // Kardex, Categorías, Proveedores
 app.use('/api/locations', locationRoutes);      // Sedes, Ciudades, Países
 app.use('/api/movements', movementRoutes);      // Ventas, Traslados (Logística)
-app.use('/api/it-assets', itAssetsRoutes);      // Fichas técnicas exclusivas de TI
 app.use('/api/maintenance', maintenanceRoutes); // Módulo de Mantenimiento (nuevo)
 app.use('/api/ventas', salesRoutes); // Nueva ruta para ventas
 
