@@ -145,9 +145,33 @@ const importarItemsMasivo = async (items) => {
   return data;
 };
 
+const actualizarCategoria = async (id, datosActualizados) => {
+  const { data, error } = await supabase
+    .from('categorias')
+    .update(datosActualizados)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw new Error(`Error BD al actualizar categoría: ${error.message}`);
+  return data;
+};
+
+const actualizarProveedor = async (id, datosActualizados) => {
+  const { data, error } = await supabase
+    .from('proveedores')
+    .update(datosActualizados)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw new Error(`Error BD al actualizar proveedor: ${error.message}`);
+  return data;
+};
+
 module.exports = {
   crearItemKardex, crearCategoria, crearProveedor, registrarHistorial,
   obtenerCategorias, obtenerProveedores, obtenerInventario, obtenerHistorialItem, obtenerItemPorId,
-  actualizarItem,
+  actualizarItem, actualizarCategoria, actualizarProveedor,
   importarItemsMasivo,
 };

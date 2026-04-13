@@ -122,9 +122,29 @@ const descargarEtiquetas = async (req, res) => {
   }
 };
 
+const actualizarCategoria = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const categoriaActualizada = await inventoryService.actualizarCategoria(id, req.body);
+    res.status(200).json({ mensaje: 'Categoría actualizada exitosamente', data: categoriaActualizada });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+const actualizarProveedor = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const proveedorActualizado = await inventoryService.actualizarProveedor(id, req.body);
+    res.status(200).json({ mensaje: 'Proveedor actualizado exitosamente', data: proveedorActualizado });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
 module.exports = {
   registrarEntrada, crearCategoria, registrarProveedor,
   getCategorias, getProveedores, getInventario, getHistorial,
-  actualizarEquipo,
+  actualizarEquipo, actualizarCategoria, actualizarProveedor,
   descargarEtiquetas,
 };

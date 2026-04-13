@@ -17,5 +17,8 @@ router.get('/', protegerRuta, inventoryController.getInventario);
 router.get('/:id/historial', protegerRuta, inventoryController.getHistorial);
 router.get('/:id/etiquetas', protegerRuta, inventoryController.descargarEtiquetas);
 
-router.put('/:id', protegerRuta,inventoryController.actualizarEquipo);
+
+router.put('/categorias/:id', protegerRuta, soloRol('ADMIN'), inventoryController.actualizarCategoria);
+router.put('/proveedores/:id', protegerRuta, soloRol('ADMIN'), inventoryController.actualizarProveedor);
+router.put('/:id', protegerRuta, soloRol('ADMIN'), inventoryController.actualizarEquipo);
 module.exports = router;

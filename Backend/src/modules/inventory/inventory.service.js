@@ -17,6 +17,21 @@ const registrarEntrada = async (datos) => {
   return nuevoItem;
 };
 
+const actualizarCategoria = async (id, datos) => {
+  if (!id) throw new Error('El ID de la categoría es obligatorio.');
+  
+  const datosLimpios = { ...datos };
+  if (datosLimpios.nombre) datosLimpios.nombre = datosLimpios.nombre.trim();
+  if (datosLimpios.prefijo) datosLimpios.prefijo = datosLimpios.prefijo.trim().toUpperCase();
+
+  return await inventoryRepository.actualizarCategoria(id, datosLimpios);
+};
+
+const actualizarProveedor = async (id, datos) => {
+  if (!id) throw new Error('El ID del proveedor es obligatorio.');
+  return await inventoryRepository.actualizarProveedor(id, datos);
+};
+
 const registrarCategoria = async (datos) => {
   if (!datos.nombre || !datos.prefijo) throw new Error('Nombre y prefijo son obligatorios.');
   return await inventoryRepository.crearCategoria({
@@ -56,7 +71,6 @@ const listarInventario = async (filtros) => {
     estado: item.cantidad_stock <= 2 ? 'Crítico' : 'Óptimo',
     detalles: item.detalles,
 
-    // 🔥 LAS LÍNEAS MÁGICAS PARA EL MODAL DE EDICIÓN 🔥
     cat_id: item.cat_id,
     prov_id: item.prov_id || item.proveedor_id, 
     serie_fabricante: item.serie_fabricante,
@@ -103,5 +117,5 @@ const obtenerEquipoPorId = async (id) => {
 module.exports = {
   registrarEntrada, registrarCategoria, registrarProveedor,
   listarCategorias, listarProveedores, listarInventario, obtenerHistorial, obtenerEquipoPorId,
-  actualizarEquipo,
+  actualizarEquipo, actualizarCategoria, actualizarProveedor,
 };

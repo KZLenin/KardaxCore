@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CreateProviderSheet from './CreateProviderSheet';
+import EditProviderSheet from './EditProviderSheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, Building2 } from "lucide-react";
@@ -8,6 +9,9 @@ import { inventoryService } from '../services/inventoryService';
 const ProvidersTable = () => {
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [providerToEdit, setProviderToEdit] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // 1. Sacamos la función afuera y le ponemos el nombre correcto
   const fetchProviders = async () => {
@@ -56,13 +60,29 @@ const ProvidersTable = () => {
                 <TableCell className="text-zinc-600">{prov.contacto_nombre || 'Sin contacto'}</TableCell>
                 <TableCell className="text-zinc-500">{prov.telefono || '-'}</TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" size="sm" className="text-zinc-500 hover:text-zinc-900">Ver Ficha</Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    onClick={() => {
+                      setProviderToEdit(prov);
+                      setIsEditModalOpen(true);
+                    }}
+                  >
+                    Ver Ficha
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       )}
+      <EditProviderSheet 
+        isOpen={isEditModalOpen}
+        setIsOpen={setIsEditModalOpen}
+        provider={providerToEdit}
+        onUpdated={fetchProviders}
+      />
     </div>
   );
 };

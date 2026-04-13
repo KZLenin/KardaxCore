@@ -22,4 +22,8 @@ export const providerService = {
     }
   },
 
+  actualizarProveedor: async (id, datos) => {
+  const response = await httpClient.put(`/inventory/proveedores/${id}`, datos);
+  return response.data;
+}
 }

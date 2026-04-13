@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CreateCategorySheet from './CreateCategoriesSheet';
+import EditCategorySheet from './EditCategorySheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 
@@ -11,6 +12,8 @@ const CategoriesTable = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   
+  const [categoryToEdit, setCategoryToEdit] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const fetchCategories = async () => {
     try {
@@ -63,13 +66,29 @@ const CategoriesTable = () => {
                   </code>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" size="sm" className="text-zinc-500 hover:text-zinc-900">Editar</Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    onClick={() => {
+                      setCategoryToEdit(cat);
+                      setIsEditModalOpen(true);
+                    }}
+                  >
+                    Detalles
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       )}
+      <EditCategorySheet 
+        isOpen={isEditModalOpen}
+        setIsOpen={setIsEditModalOpen}
+        category={categoryToEdit}
+        onUpdated={fetchCategories}
+      />
     </div>
   );
 };

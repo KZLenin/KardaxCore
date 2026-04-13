@@ -68,7 +68,7 @@ const CreateProviderSheet = ({ onCreated }) => {
               
               <FormField control={form.control} name="nombre_empresa" render={({ field }) => (
                 <FormItem className="space-y-1.5">
-                  <FormLabel className="text-sm font-semibold text-zinc-900">Empresa *</FormLabel>
+                  <FormLabel className="text-sm font-semibold text-zinc-900">Razón Social *</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Building2 className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
@@ -81,7 +81,7 @@ const CreateProviderSheet = ({ onCreated }) => {
 
               <FormField control={form.control} name="razon_social" render={({ field }) => (
                 <FormItem className="space-y-1.5">
-                  <FormLabel className="text-sm font-semibold text-zinc-900">Razón Social</FormLabel>
+                  <FormLabel className="text-sm font-semibold text-zinc-900">RUC</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <FileText  className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />

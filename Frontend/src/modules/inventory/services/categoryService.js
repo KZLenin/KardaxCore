@@ -18,4 +18,9 @@ export const categoryService = {
       throw error.response?.data?.error || 'Error al registrar la categoría';
     }
   },
+
+  actualizarCategoria: async (id, datos) => {
+  const response = await httpClient.put(`/inventory/categorias/${id}`, datos);
+  return response.data;
+}
 }
