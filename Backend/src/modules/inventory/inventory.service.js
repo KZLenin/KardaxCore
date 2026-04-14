@@ -32,9 +32,14 @@ const registrarEntrada = async (datos) => {
 const actualizarCategoria = async (id, datos) => {
   if (!id) throw new Error('El ID de la categoría es obligatorio.');
   
-  const datosLimpios = { ...datos };
-  if (datosLimpios.nombre) datosLimpios.nombre = datosLimpios.nombre.trim();
-  if (datosLimpios.prefijo) datosLimpios.prefijo = datosLimpios.prefijo.trim().toUpperCase();
+  const datosLimpios = {};
+  if (datos.nombre) datosLimpios.nombre = datos.nombre.trim();
+  if (datos.prefijo) datosLimpios.prefijo = datos.prefijo.trim().toUpperCase();
+  
+  // Si el frontend envía el dato del padre, lo actualizamos también
+  if (datos.categoria_padre_id !== undefined || datos.categoriaPadreId !== undefined) {
+    datosLimpios.categoria_padre_id = datos.categoria_padre_id || datos.categoriaPadreId || null;
+  }
 
   return await inventoryRepository.actualizarCategoria(id, datosLimpios);
 };
@@ -46,9 +51,14 @@ const actualizarProveedor = async (id, datos) => {
 
 const registrarCategoria = async (datos) => {
   if (!datos.nombre || !datos.prefijo) throw new Error('Nombre y prefijo son obligatorios.');
+  
+  // Atrapamos el ID del padre (puede venir null si es una categoría principal)
+  const categoriaPadreId = datos.categoria_padre_id || datos.categoriaPadreId || null;
+
   return await inventoryRepository.crearCategoria({
     nombre: datos.nombre.trim(),
-    prefijo: datos.prefijo.trim().toUpperCase()
+    prefijo: datos.prefijo.trim().toUpperCase(),
+    categoria_padre_id: categoriaPadreId // Lo mandamos a Supabase
   });
 };
 

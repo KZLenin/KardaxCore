@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
 import { inventoryService } from '../services/inventoryService';
@@ -194,24 +194,40 @@ const EditItemSheet = ({ item, categorias = [], proveedores = [], onUpdated, isO
                 )} />
 
                 <div className="grid grid-cols-2 gap-x-4 gap-y-6">
-                  <FormField control={form.control} name="categoriaId" render={({ field }) => (
-                    <FormItem className="space-y-1.5">
-                      <FormLabel className="text-sm font-semibold text-zinc-900">Categoría *</FormLabel>
-                      <Select disabled={!isEditing} onValueChange={field.onChange} value={field.value || undefined}>
-                        <FormControl>
-                          <SelectTrigger className={`h-10 border-zinc-200 ${!isEditing ? "bg-zinc-100/50 text-zinc-700 opacity-100" : "bg-white focus:ring-1 focus:ring-blue-500"}`}>
-                            <SelectValue placeholder="Seleccionar" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {categorias.map(cat => (
-                            <SelectItem key={cat.id} value={cat.id.toString()}>{cat.nombre}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
+                  <FormField control={form.control} name="categoriaId" render={({ field }) => {
+                    
+                    const categoriasPrincipales = categorias.filter(c => !c.categoria_padre_id);
+                    const getSubcategorias = (idPadre) => categorias.filter(c => c.categoria_padre_id === idPadre);
+
+                    return (
+                      <FormItem className="space-y-1.5">
+                        <FormLabel className="text-sm font-semibold text-zinc-900">Categoría *</FormLabel>
+                        <Select disabled={!isEditing} onValueChange={field.onChange} value={field.value || undefined}>
+                          <FormControl>
+                            <SelectTrigger className={`h-10 border-zinc-200 ${!isEditing ? "bg-zinc-100/50 text-zinc-700 opacity-100" : "bg-white focus:ring-1 focus:ring-blue-500"}`}>
+                              <SelectValue placeholder="Seleccionar" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {categoriasPrincipales.map(padre => (
+                              <SelectGroup key={padre.id}>
+                                <SelectLabel className="font-bold text-blue-800 bg-blue-50/50">{padre.nombre}</SelectLabel>
+                                <SelectItem value={padre.id.toString()} className="pl-6 font-semibold text-zinc-700">
+                                  {padre.nombre} (General)
+                                </SelectItem>
+                                {getSubcategorias(padre.id).map(hijo => (
+                                  <SelectItem key={hijo.id} value={hijo.id.toString()} className="pl-8 text-zinc-600">
+                                    ↳ {hijo.nombre}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }} />
 
                   <FormField control={form.control} name="proveedorId" render={({ field }) => (
                     <FormItem className="space-y-1.5">

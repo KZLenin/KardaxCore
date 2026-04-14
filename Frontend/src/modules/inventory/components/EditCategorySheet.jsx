@@ -2,48 +2,59 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Tags, Type, Check, Pencil, Unlock, X } from "lucide-react";
+import { Loader2, Tags, Type, Check, Pencil, Unlock, X, Network } from "lucide-react"; // Añadí Network para el icono
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+// 🔥 Importamos el Select de Shadcn
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; 
 
 import { categoryService } from '../services/categoryService';
 import { useToast } from "@/hooks/use-toast";
 
+// 🔥 Actualizamos el schema para aceptar categoria_padre_id
 const formSchema = z.object({
   nombre: z.string().min(3, "Mínimo 3 letras"),
   prefijo: z.string().min(2, "Mínimo 2").max(4, "Máximo 4 letras"),
+  categoria_padre_id: z.string().optional().nullable(),
 });
 
-const EditCategorySheet = ({ category, isOpen, setIsOpen, onUpdated }) => {
+// 🔥 Recibimos allCategories por props
+const EditCategorySheet = ({ category, isOpen, setIsOpen, onUpdated, allCategories = [] }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const form = useForm({
     resolver: zodResolver(formSchema),
-    defaultValues: { nombre: "", prefijo: "" },
+    defaultValues: { nombre: "", prefijo: "", categoria_padre_id: "ninguno" },
   });
 
-  // Cargar datos cuando se abre el modal
   useEffect(() => {
     if (category && isOpen) {
       form.setValue("nombre", category.nombre || "");
       form.setValue("prefijo", category.prefijo || "");
+      // Si tiene padre lo ponemos, si no, seteamos "ninguno"
+      form.setValue("categoria_padre_id", category.categoria_padre_id || "ninguno");
     } else if (!isOpen) {
       form.reset();
-      setIsEditing(false); // Bloqueamos al cerrar
+      setIsEditing(false);
     }
   }, [category, isOpen, form]);
 
   const onSubmit = async (values) => {
     setIsSubmitting(true);
     try {
-      const dataLimpia = { ...values, prefijo: values.prefijo.toUpperCase() };
-      await categoryService.actualizarCategoria(category.id, dataLimpia);
+      const dataLimpia = { 
+        ...values, 
+        prefijo: values.prefijo.toUpperCase(),
+        // Si eligió "ninguno", mandamos null al backend
+        categoria_padre_id: values.categoria_padre_id === "ninguno" ? null : values.categoria_padre_id
+      };
       
+      await categoryService.actualizarCategoria(category.id, dataLimpia);
       toast({ title: "¡Actualizado!", description: "La categoría se modificó correctamente." });
       
       setIsEditing(false);
@@ -57,11 +68,15 @@ const EditCategorySheet = ({ category, isOpen, setIsOpen, onUpdated }) => {
     }
   };
 
+  // 🔥 Filtramos las categorías para el dropdown:
+  // 1. Solo categorías principales (sin padre) para mantener solo 2 niveles.
+  // 2. Excluimos la categoría actual para que no se asigne a sí misma.
+  const parentOptions = allCategories.filter(c => !c.categoria_padre_id && c.id !== category?.id);
+
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetContent className="w-full sm:max-w-md overflow-y-auto bg-slate-50 border-l border-zinc-200 p-0 flex flex-col">
         
-        {/* HEADER CON BOTÓN DE DESBLOQUEO */}
         <div className="bg-white p-6 border-b border-zinc-200 flex justify-between items-start sticky top-0 z-10 shadow-sm">
           <div className="space-y-1">
             <SheetTitle className="text-2xl font-bold text-zinc-950 flex items-center gap-2">
@@ -116,15 +131,46 @@ const EditCategorySheet = ({ category, isOpen, setIsOpen, onUpdated }) => {
                       />
                     </div>
                   </FormControl>
-                  <FormDescription className="text-xs text-amber-600 font-medium">
-                    ⚠️ Cambiar el prefijo no afectará a los equipos que ya tienen un código generado.
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              {/* 🔥 NUEVO CAMPO: Selector de Categoría Padre */}
+              <FormField control={form.control} name="categoria_padre_id" render={({ field }) => (
+                <FormItem className="space-y-1.5">
+                  <FormLabel className="text-sm font-semibold text-zinc-900 flex items-center gap-1">
+                    <Network className="w-4 h-4 text-zinc-500"/> Subcategoría de:
+                  </FormLabel>
+                  <Select 
+                    disabled={!isEditing} 
+                    onValueChange={field.onChange} 
+                    value={field.value || "ninguno"}
+                  >
+                    <FormControl>
+                      <SelectTrigger className={`h-10 ${!isEditing ? "bg-zinc-100/50 text-zinc-700 cursor-default" : "bg-white"}`}>
+                        <SelectValue placeholder="Selecciona una categoría padre" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="ninguno" className="font-semibold text-blue-600">
+                        -- Categoría Principal (Sin Padre) --
+                      </SelectItem>
+                      {parentOptions.map((parent) => (
+                        <SelectItem key={parent.id} value={parent.id}>
+                          {parent.nombre} ({parent.prefijo})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription className="text-xs text-zinc-500">
+                    Si seleccionas una categoría aquí, esta se convertirá en una subcategoría.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )} />
+
             </div>
 
-            {/* FOOTER DE ACCIONES (Solo visible si está editando) */}
             {isEditing && (
               <div className="border-t border-zinc-200 pt-6 mt-auto flex gap-3">
                 <Button type="button" variant="outline" className="flex-1 h-11" onClick={() => setIsEditing(false)} disabled={isSubmitting}>

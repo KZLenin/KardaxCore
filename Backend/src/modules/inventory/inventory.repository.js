@@ -9,8 +9,8 @@ const crearItemKardex = async (datosItem) => {
         sede_id: datosItem.sedeId,
         cat_id: datosItem.categoriaId,
         nombre: datosItem.nombre,
-        serie_fabricante: datosItem.serieFabricante,
-        prov_id: datosItem.proveedorId || null,
+        serie_fabricante: datosItem.serie_fabricante,
+        proveedor_id: datosItem.proveedorId || null,
         detalles: datosItem.detalles || {} // Si no mandan detalles, guardamos un JSON vacío
       }
     ])

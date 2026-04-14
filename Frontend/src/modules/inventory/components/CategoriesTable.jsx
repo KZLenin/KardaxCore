@@ -3,8 +3,7 @@ import CreateCategorySheet from './CreateCategoriesSheet';
 import EditCategorySheet from './EditCategorySheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-
-import { Loader2, Plus, Tags } from "lucide-react";
+import { Loader2, Tags } from "lucide-react";
 import { toast } from 'sonner';
 import { categoryService } from '../services/categoryService';
 
@@ -31,7 +30,22 @@ const CategoriesTable = () => {
     fetchCategories();
   }, []);
 
- 
+  // 🔥 MAGIA VISUAL: Ordenamos para que los hijos salgan justo debajo de sus padres
+  const getSortedCategories = () => {
+    const parents = categories.filter(c => !c.categoria_padre_id);
+    const sorted = [];
+    
+    parents.forEach(padre => {
+      sorted.push(padre); // Metemos al padre
+      // Buscamos y metemos a todos sus hijos
+      const children = categories.filter(c => c.categoria_padre_id === padre.id);
+      sorted.push(...children);
+    });
+    
+    return sorted;
+  };
+
+  const sortedCategories = getSortedCategories();
 
   return (
     <div className="border rounded-lg bg-white shadow-sm overflow-hidden animate-in fade-in duration-500">
@@ -40,11 +54,9 @@ const CategoriesTable = () => {
           <Tags className="w-5 h-5 text-blue-600" />
           <h3 className="font-semibold text-zinc-900">Gestión de Categorías</h3>
         </div>
-
-        <CreateCategorySheet onCreated={fetchCategories} />
+        <CreateCategorySheet onCreated={fetchCategories} allCategories={categories} />
       </div>
       
-      {/* ... (Aquí va tu tabla que ya tenías sin cambios) ... */}
       {loading ? (
         <div className="flex justify-center p-12"><Loader2 className="animate-spin text-blue-600" /></div>
       ) : (
@@ -57,9 +69,13 @@ const CategoriesTable = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {categories.map((cat) => (
+            {sortedCategories.map((cat) => (
               <TableRow key={cat.id}>
-                <TableCell className="font-medium text-zinc-900">{cat.nombre}</TableCell>
+                {/* 🔥 Indicador visual de si es subcategoría */}
+                <TableCell className={`font-medium ${cat.categoria_padre_id ? 'text-zinc-600 pl-8' : 'text-zinc-900'}`}>
+                  {cat.categoria_padre_id && <span className="mr-2 text-zinc-300">↳</span>}
+                  {cat.nombre}
+                </TableCell>
                 <TableCell>
                   <code className="bg-zinc-100 text-zinc-600 px-2.5 py-1 rounded text-xs font-mono border border-zinc-200">
                     {cat.prefijo || 'N/A'}
@@ -88,6 +104,7 @@ const CategoriesTable = () => {
         setIsOpen={setIsEditModalOpen}
         category={categoryToEdit}
         onUpdated={fetchCategories}
+        allCategories={categories} /* 🔥 Le pasamos todas las categorías para el Dropdown */
       />
     </div>
   );

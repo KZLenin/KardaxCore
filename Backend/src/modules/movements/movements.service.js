@@ -72,8 +72,7 @@ const crearMovimiento = async (datos, usuarioId) => {
   };
   await repository.insertarHistorial(nuevoHistorial);
 
-  // 8. ¡LA MAGIA DE LA ETIQUETA!
-  // cromePrinter.imprimirEtiquetaLogistica(item, movimientoGuardado);
+
 
   return { ...movimientoGuardado, item, stockRestante: nuevoStock };
 };

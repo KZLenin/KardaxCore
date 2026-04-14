@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 
 import { inventoryService } from '../services/inventoryService';
 import { useToast } from "@/hooks/use-toast"; //
@@ -69,6 +69,9 @@ const CreateItemSheet = ({ categorias = [], proveedores = [], onCreated }) => {
     }
   };
 
+  const categoriasPrincipales = categorias.filter(c => !c.categoria_padre_id);
+  const getSubcategorias = (idPadre) => categorias.filter(c => c.categoria_padre_id === idPadre);
+
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       {/* Botón de Activación (Más elegante) */}
@@ -118,10 +121,19 @@ const CreateItemSheet = ({ categorias = [], proveedores = [], onCreated }) => {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {categorias.map(cat => (
-                        <SelectItem key={cat.id} value={cat.id.toString()}>
-                          {cat.nombre}
-                        </SelectItem>
+                      {/* 🔥 Renderizado Agrupado */}
+                      {categoriasPrincipales.map(padre => (
+                        <SelectGroup key={padre.id}>
+                          <SelectLabel className="font-bold text-blue-800 bg-blue-50/50">{padre.nombre}</SelectLabel>
+                          <SelectItem value={padre.id.toString()} className="pl-6 font-semibold text-zinc-700">
+                            {padre.nombre} (General)
+                          </SelectItem>
+                          {getSubcategorias(padre.id).map(hijo => (
+                            <SelectItem key={hijo.id} value={hijo.id.toString()} className="pl-8 text-zinc-600">
+                              ↳ {hijo.nombre}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
                       ))}
                     </SelectContent>
                   </Select>

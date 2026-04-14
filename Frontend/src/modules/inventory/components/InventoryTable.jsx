@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { Search, Plus, Loader2, PackageX, FilterX, FileSpreadsheet } from "lucide-react";
 
 
@@ -81,6 +81,9 @@ const InventoryView = () => {
     setFiltros({ buscar: '', categoriaId: 'todas' });
   };
 
+  const categoriasPrincipales = categorias.filter(c => !c.categoria_padre_id);
+  const getSubcategorias = (idPadre) => categorias.filter(c => c.categoria_padre_id === idPadre);
+
   return (
     <div className="space-y-6">
 
@@ -104,11 +107,20 @@ const InventoryView = () => {
             <SelectValue placeholder="Categoría" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="todas">Todas las categorías</SelectItem>
-            {categorias.map((cat) => (
-              <SelectItem key={cat.id} value={cat.id.toString()}>
-                {cat.nombre}
-              </SelectItem>
+            <SelectItem value="todas" className="font-bold text-blue-600">Todas las categorías</SelectItem>
+            
+            {categoriasPrincipales.map(padre => (
+              <SelectGroup key={padre.id}>
+                <SelectLabel className="font-bold text-blue-800 bg-blue-50/50">{padre.nombre}</SelectLabel>
+                <SelectItem value={padre.id.toString()} className="pl-6 font-semibold text-zinc-700">
+                  {padre.nombre} (General)
+                </SelectItem>
+                {getSubcategorias(padre.id).map(hijo => (
+                  <SelectItem key={hijo.id} value={hijo.id.toString()} className="pl-8 text-zinc-600">
+                    ↳ {hijo.nombre}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             ))}
           </SelectContent>
         </Select>
