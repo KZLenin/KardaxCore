@@ -46,7 +46,7 @@ const generarPdfEtiquetas = async (codigo, nombreEquipo, cantidad) => {
         // --- CÓDIGO EN LETRAS (Pegado a las barras) ---
         doc.fontSize(8)
            .font('Courier-Bold') // Fuente monoespaciada tipo consola
-           .text(codigo, 0, 55, { align: 'center', width: 144 });
+           .text(codigo, 0, 58, { align: 'center', width: 144 });
       }
 
       // 5. Cerramos el documento

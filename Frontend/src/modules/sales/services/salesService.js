@@ -25,16 +25,16 @@ export const salesService = {
   },
 
   descargarPDF: async (id) => {
-    // Pedimos el archivo como 'blob' (binario) para poder descargarlo
-    const response = await httpClient.get(`/ventas/${id}/pdf`, { responseType: 'blob' });
-    
-    // Magia de React para forzar la descarga del PDF en el navegador
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `Comprobante_Venta_${id}.pdf`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    try {
+      // Pedimos el archivo como 'blob' (binario)
+      const response = await httpClient.get(`/ventas/${id}/pdf`, { 
+        responseType: 'blob' 
+      });
+      
+      // SOLO retornamos el archivo crudo. El componente (SalesHistoryTable) se encarga de abrirlo.
+      return response.data; 
+    } catch (error) {
+      throw new Error('Error al generar el PDF de la venta');
+    }
   }
 };

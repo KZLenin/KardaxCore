@@ -57,7 +57,7 @@ const descargarPDF = async (req, res) => {
 
     // 3. Configuramos la respuesta HTTP para que el navegador sepa que es un archivo descargable
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=Comprobante_Venta_${detalle.numero_comprobante || 'SN'}.pdf`);
+    res.setHeader('Content-Disposition', `inline; filename="Comprobante_${detalle.numero_comprobante || 'SN'}.pdf"`);
 
     // 4. Conectamos el PDF directamente a la respuesta (stream)
     doc.pipe(res);
@@ -67,7 +67,7 @@ const descargarPDF = async (req, res) => {
     // ==========================================
     
     // Cabecera Corporativa
-    doc.fontSize(20).font('Helvetica-Bold').text('SOI CORE B2B', { align: 'center' });
+    doc.fontSize(20).font('Helvetica-Bold').text('GYMTECH', { align: 'center' });
     doc.fontSize(10).font('Helvetica').text('Comprobante de Entrega de Equipos', { align: 'center' });
     doc.moveDown(2);
 
@@ -75,7 +75,16 @@ const descargarPDF = async (req, res) => {
     doc.fontSize(12).font('Helvetica-Bold').text('Datos Comerciales:');
     doc.font('Helvetica').fontSize(10);
     doc.text(`Cliente / Empresa: ${detalle.empresa_nombre || detalle.cliente_nombre}`);
+    if (detalle.ruc) doc.text(`RUC: ${detalle.ruc}`);
     doc.text(`Sede de Entrega: ${detalle.sucursal_nombre || 'Principal'}`);
+    if (detalle.direccion_envio) {
+        doc.text(`Dirección: ${detalle.direccion_envio}`);
+    }
+    
+    // Agregamos el contacto que sí tienes en la tabla
+    if (detalle.contacto_entrega !== 'S/N') {
+        doc.text(`Atención: ${detalle.contacto_entrega}`);
+    }
     doc.text(`Fecha: ${new Date(detalle.fecha_venta).toLocaleDateString()}`);
     doc.text(`Comprobante / Recibo: ${detalle.numero_comprobante || 'S/N'}`);
     doc.text(`PO del Cliente: ${detalle.po_cliente || 'N/A'}`);
@@ -130,7 +139,6 @@ const descargarPDF = async (req, res) => {
     doc.end();
 
   } catch (error) {
-    console.error("🚨 ERROR AL GENERAR PDF:", error);
     // Solo enviamos error si el PDF aún no se empezó a mandar
     if (!res.headersSent) {
       res.status(500).json({ error: 'Error al generar el documento PDF' });

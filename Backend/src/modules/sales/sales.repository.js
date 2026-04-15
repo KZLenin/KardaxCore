@@ -50,14 +50,20 @@ const getHistorial = async (buscarTerm) => {
   const obtenerDetalleVenta = async (ventaId) => {
   const { data, error } = await supabase
     .from('ventas')
-    // 🔥 AQUÍ ESTÁ LA MAGIA CORREGIDA
     .select(`
       *,
+      empresa:clientes_empresas (nombre_comercial, ruc),
+      sucursal:clientes_sucursales (
+        nombre_sucursal, 
+        direccion, 
+        contacto_nombre, 
+        telefono
+      ),
       items:ventas_detalle (
         cantidad,
         precio_unitario,
         garantia_dias_cliente,
-        item:inventario (nombre)
+        item:inventario (nombre, codigo_barras)
       )
     `)
     .eq('id', ventaId)
@@ -65,14 +71,20 @@ const getHistorial = async (buscarTerm) => {
 
   if (error) throw new Error(`Error BD Detalles Venta: ${error.message}`);
 
-  // Formateamos la respuesta para el Frontend
+  // Mapeo seguro usando solo las columnas que SI existen en tu BDD
   return {
     ...data,
+    empresa_nombre: data.empresa?.nombre_comercial || data.cliente_nombre || 'N/A',
+    sucursal_nombre: data.sucursal?.nombre_sucursal || 'Matriz Principal',
+    direccion_envio: data.sucursal?.direccion || 'Dirección no registrada',
+    contacto_entrega: data.sucursal?.contacto_nombre || 'S/N',
+    ruc: data.empresa?.ruc || '',
     items: data.items.map(i => ({
       item_nombre: i.item?.nombre || 'Equipo desconocido',
+      codigo: i.item?.codigo_barras || 'S/C',
       cantidad: i.cantidad,
       precio_unitario: i.precio_unitario,
-      garantia_dias: i.garantia_dias_cliente // Usamos el nombre real de tu columna
+      garantia_dias: i.garantia_dias_cliente 
     }))
   };
 };

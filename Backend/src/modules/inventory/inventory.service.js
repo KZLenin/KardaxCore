@@ -90,7 +90,11 @@ const listarInventario = async (filtros) => {
     stock: item.cantidad_stock, 
     unidad: item.unidad_medida,
     // Calculamos el estado dinámicamente aquí
-    estado: item.cantidad_stock <= 2 ? 'Crítico' : 'Óptimo',
+    estado_operativo: item.estado_operativo || 'Operativo',
+    
+    // Tu antigua variable 'estado' la renombramos a 'nivel_stock' para no perder esa advertencia
+    nivel_stock: item.cantidad_stock <= 2 ? 'Crítico' : 'Óptimo',
+    
     detalles: item.detalles,
 
     cat_id: item.cat_id,

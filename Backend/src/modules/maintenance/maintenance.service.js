@@ -41,12 +41,28 @@ const listarOrdenes = async () => {
 const actualizarOrden = async (id, datosActualizados, item_id) => {
   if (!id) throw new Error('El ID de la orden es obligatorio');
   
+  let cambiarEstadoEquipo = false;
+
   // Si envían que está finalizado, le ponemos fecha de fin automática
   if (datosActualizados.estado === 'Finalizado' && !datosActualizados.fecha_fin) {
     datosActualizados.fecha_fin = new Date().toISOString();
+    cambiarEstadoEquipo = true; // 🔥 Marcamos la bandera de que el equipo está listo
   }
 
-  return await maintenanceRepository.actualizarOrdenTrabajo(id, datosActualizados, item_id);
+  // Actualizamos la orden de trabajo
+  const ordenActualizada = await maintenanceRepository.actualizarOrdenTrabajo(id, datosActualizados, item_id);
+
+  // 🔥 NUEVO: Si la orden finalizó, liberamos el equipo en el inventario
+  if (cambiarEstadoEquipo && item_id) {
+    // Nota: Necesitarás agregar esta función a tu maintenance.repository.js
+    // Es idéntica a la que creaste en movements.repository.js
+    await maintenanceRepository.actualizarEstadoEquipo(item_id, 'Operativo');
+    
+    // Opcional pero recomendado: Registrar en el historial que salió de mantenimiento
+    await maintenanceRepository.registrarHistorialLiberacion(item_id, 'LIBERACION_TALLER', 'Equipo reparado y devuelto a estado Operativo.');
+  }
+
+  return ordenActualizada;
 };
 
 const lookupEquipoPorEscaneo = async (codigo) => {

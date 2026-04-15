@@ -48,13 +48,26 @@ const SalesHistoryTable = () => {
   // 🔥 Función de la Impresora (PDF)
   const handleImprimir = async (ventaId) => {
     setImprimiendoId(ventaId);
-    toast({ title: "Generando PDF...", description: "Descargando comprobante..." });
+    toast({ title: "Generando PDF...", description: "Abriendo comprobante en nueva pestaña..." });
+    
     try {
-      await salesService.descargarPDF(ventaId);
-      toast({ title: "¡PDF Descargado!", description: "Revisa tu carpeta de descargas." });
+      // 1. Pedimos el PDF al backend (viaja seguro con el token de Axios)
+      const pdfBlob = await salesService.descargarPDF(ventaId);
+      
+      // 2. Creamos una URL virtual en el navegador con ese archivo
+      const fileURL = URL.createObjectURL(pdfBlob);
+      
+      // 3. Abrimos esa URL en una nueva pestaña (Se visualizará el PDF)
+      window.open(fileURL, '_blank');
+      
+      // 4. Limpiamos la memoria del navegador después de 10 segundos
+      setTimeout(() => {
+        URL.revokeObjectURL(fileURL);
+      }, 10000);
+
     } catch (error) {
       console.error(error);
-      toast({ title: "Error", description: "El backend aún no tiene la ruta del PDF configurada.", variant: "destructive" });
+      toast({ title: "Error", description: "Hubo un problema al generar el documento.", variant: "destructive" });
     } finally {
       setImprimiendoId(null);
     }

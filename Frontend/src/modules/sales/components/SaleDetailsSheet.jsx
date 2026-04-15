@@ -82,6 +82,9 @@ const SaleDetailsSheet = ({ ventaId, isOpen, setIsOpen }) => {
                     <TableRow key={idx}>
                       <TableCell>
                         <p className="font-semibold text-zinc-900">{item.item_nombre}</p>
+                        <p className="text-[11px] font-mono text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded w-fit mt-1">
+                          Cod: {item.codigo}
+                        </p>
                         {item.garantia_dias > 0 && (
                           <Badge variant="outline" className="text-[10px] mt-1 bg-blue-50 text-blue-700">Garantía: {item.garantia_dias} días</Badge>
                         )}

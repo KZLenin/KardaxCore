@@ -5,13 +5,19 @@ const registrarMovimientoLogistico = async (req, res) => {
   try {
     // Asumimos que tu middleware de Auth inyecta los datos del usuario logueado en req.user
     // Si aún no lo hace, ponemos un ID temporal para probar
-    const usuarioId = req.user ? req.user.id : 'ID_DEL_USUARIO_ADMIN_DE_PRUEBA';
+    if (!req.usuario || !req.usuario.id) {
+      return res.status(401).json({ 
+        error: "No se pudo identificar al responsable. Asegúrate de estar logueado." 
+      });
+    }
+
+    const usuarioId = req.usuario.id;
 
     // Le pasamos el body y el ID del usuario al servicio
     const resultado = await service.crearMovimiento(req.body, usuarioId);
     
     res.status(201).json({ 
-      mensaje: 'Movimiento registrado. Stock actualizado e historial guardado.', 
+      mensaje: 'Movimiento registrado y Orden de Trabajo generada.', 
       data: resultado 
     });
   } catch (error) {

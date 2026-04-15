@@ -53,4 +53,87 @@ const obtenerHistorial = async () => {
   return data;
 };
 
-module.exports = { obtenerItem, actualizarStock, insertarMovimiento, insertarHistorial, buscarItemPorCodigo, obtenerHistorial };
+const obtenerHistorialDeItem = async (itemId) => {
+  const { data, error } = await supabase
+    .from('historial_seguimiento')
+    .select('*')
+    .eq('item_id', itemId)
+    .order('fecha_registro', { ascending: false });
+    
+  if (error) throw new Error(`Error al buscar historia del equipo: ${error.message}`);
+  return data;
+};
+
+// 🔥 NUEVO: Buscar si este equipo fue vendido (Para la tarjeta de Garantía)
+const obtenerVentaDeItem = async (itemId) => {
+  const { data, error } = await supabase
+    .from('ventas_detalle')
+    .select(`
+      garantia_dias_cliente,
+      venta:ventas (
+        fecha_venta,
+        numero_comprobante,
+        empresa:clientes_empresas(nombre_comercial)
+      )
+    `)
+    .eq('item_id', itemId)
+    .order('id', { ascending: false }) // Traemos la venta más reciente
+    .limit(1)
+    .single();
+
+  // Ignoramos el error PGRST116 (Significa que no hay ventas, lo cual es normal si está en bodega)
+  if (error && error.code !== 'PGRST116') throw error;
+  return data;
+};
+
+const actualizarEstadoOperativo = async (itemId, nuevoEstado) => {
+  const { error } = await supabase
+    .from('inventario')
+    .update({ estado_operativo: nuevoEstado })
+    .eq('id', itemId);
+    
+  if (error) throw new Error(`Error al cambiar estado operativo: ${error.message}`);
+};
+
+// 🔥 NUEVO: Crear el ticket para los técnicos
+const crearOrdenTrabajo = async (ordenData) => {
+  const { data, error } = await supabase
+    .from('ordenes_trabajo')
+    .insert([ordenData])
+    .select()
+    .single();
+    
+  if (error) throw new Error(`Error al generar Orden de Trabajo: ${error.message}`);
+  return data;
+};
+
+const actualizarEstadoEquipo = async (itemId, nuevoEstado) => {
+  const { error } = await supabase
+    .from('inventario')
+    .update({ estado_operativo: nuevoEstado })
+    .eq('id', itemId);
+    
+  if (error) throw new Error(`Error al liberar equipo del taller: ${error.message}`);
+};
+
+// 2. Deja el rastro en la bitácora de que el técnico lo arregló
+const registrarHistorialLiberacion = async (itemId, tipoAccion, descripcion) => {
+  const { error } = await supabase
+    .from('historial_seguimiento')
+    .insert([{
+      item_id: itemId,
+      tipo_accion: tipoAccion,
+      descripcion: descripcion,
+      // Si tienes el ID del técnico a la mano, puedes pasarlo, sino 'Sistema' funciona perfecto
+      usuario_responsable: null, 
+      fecha_registro: new Date().toISOString()
+    }]);
+    
+  if (error) throw new Error(`Error al guardar bitácora de taller: ${error.message}`);
+};
+
+module.exports = { 
+  obtenerItem, buscarItemPorCodigo, obtenerHistorial, obtenerHistorialDeItem, obtenerVentaDeItem,
+  actualizarStock, actualizarEstadoOperativo, actualizarEstadoEquipo,
+  insertarMovimiento, insertarHistorial, crearOrdenTrabajo, registrarHistorialLiberacion,
+};

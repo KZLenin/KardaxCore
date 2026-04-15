@@ -70,11 +70,19 @@ const InventoryView = () => {
     return () => clearTimeout(delayDebounceFn);
   }, [filtros]);
 
-  const getStatusBadge = (stock) => {
-    // Lógica dinámica: Si el stock es bajo, mostrar alerta
-    if (stock <= 2) return <Badge variant="destructive">Crítico</Badge>;
-    if (stock <= 5) return <Badge className="bg-amber-500 hover:bg-amber-600">Bajo</Badge>;
-    return <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white border-none">Óptimo</Badge>;
+  const getBadgeEstadoOperativo = (estado) => {
+    switch(estado) {
+      case 'Operativo': 
+        return <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-emerald-300">Operativo</Badge>;
+      case 'En Reparación': 
+        return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-300">En Reparación</Badge>;
+      case 'Vendido': 
+        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-300">Vendido</Badge>;
+      case 'Agotado/Baja': 
+        return <Badge className="bg-rose-100 text-rose-800 hover:bg-rose-200 border-rose-300">Baja Física</Badge>;
+      default: 
+        return <Badge variant="outline" className="text-zinc-500">{estado || 'Desconocido'}</Badge>;
+    }
   };
 
   const limpiarFiltros = () => {
@@ -170,7 +178,7 @@ const InventoryView = () => {
                 <TableHead className="font-semibold text-zinc-900">Nombre del Artículo</TableHead>
                 <TableHead className="font-semibold text-zinc-900">Categoría</TableHead>
                 <TableHead className="text-right font-semibold text-zinc-900">Stock Actual</TableHead>
-                <TableHead className="text-center font-semibold text-zinc-900">Estado</TableHead>
+                <TableHead className="text-center font-semibold text-zinc-900">Estado Operativo</TableHead>
                 <TableHead className="text-right font-semibold text-zinc-900">Acciones</TableHead>
               </TableRow>
             </TableHeader>
@@ -198,7 +206,7 @@ const InventoryView = () => {
       
       <TableCell className="text-center">
         {/* 3. CAMBIO: Usamos 'item.stock' para que la lógica del badge funcione */}
-        {getStatusBadge(item.stock)}
+        {getBadgeEstadoOperativo(item.estado_operativo)}
       </TableCell>
       
       <TableCell className="text-right">
