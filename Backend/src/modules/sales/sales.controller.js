@@ -49,17 +49,17 @@ const descargarPDF = async (req, res) => {
   try {
     const { id } = req.params;
     
-    // 1. Traemos los mismos datos que usa el "Ojito"
+    // 1. Traemos los mismos datos que usa el "Ojito" (asegúrate que el repository traiga codigo_barras)
     const detalle = await repository.obtenerDetalleVenta(id);
 
     // 2. Creamos el documento PDF
     const doc = new PDFDocument({ margin: 50 });
 
-    // 3. Configuramos la respuesta HTTP para que el navegador sepa que es un archivo descargable
+    // 3. Configuramos la respuesta HTTP
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="Comprobante_${detalle.numero_comprobante || 'SN'}.pdf"`);
 
-    // 4. Conectamos el PDF directamente a la respuesta (stream)
+    // 4. Conectamos el PDF directamente a la respuesta
     doc.pipe(res);
 
     // ==========================================
@@ -74,17 +74,18 @@ const descargarPDF = async (req, res) => {
     // Datos del Cliente y Factura
     doc.fontSize(12).font('Helvetica-Bold').text('Datos Comerciales:');
     doc.font('Helvetica').fontSize(10);
-    doc.text(`Cliente / Empresa: ${detalle.empresa_nombre || detalle.cliente_nombre}`);
+    doc.text(`Cliente / Empresa: ${detalle.empresa_nombre}`);
     if (detalle.ruc) doc.text(`RUC: ${detalle.ruc}`);
     doc.text(`Sede de Entrega: ${detalle.sucursal_nombre || 'Principal'}`);
+    
     if (detalle.direccion_envio) {
         doc.text(`Dirección: ${detalle.direccion_envio}`);
     }
     
-    // Agregamos el contacto que sí tienes en la tabla
-    if (detalle.contacto_entrega !== 'S/N') {
+    if (detalle.contacto_entrega && detalle.contacto_entrega !== 'S/N') {
         doc.text(`Atención: ${detalle.contacto_entrega}`);
     }
+    
     doc.text(`Fecha: ${new Date(detalle.fecha_venta).toLocaleDateString()}`);
     doc.text(`Comprobante / Recibo: ${detalle.numero_comprobante || 'S/N'}`);
     doc.text(`PO del Cliente: ${detalle.po_cliente || 'N/A'}`);
@@ -97,7 +98,6 @@ const descargarPDF = async (req, res) => {
     doc.text('P. Unit', 420, doc.y);
     doc.text('Subtotal', 480, doc.y);
     
-    // Línea separadora
     doc.moveTo(50, doc.y + 15).lineTo(550, doc.y + 15).stroke();
     doc.moveDown(1.5);
 
@@ -106,19 +106,29 @@ const descargarPDF = async (req, res) => {
     detalle.items.forEach(item => {
       let yActual = doc.y;
       
-      doc.text(item.item_nombre, 50, yActual, { width: 280 });
+      // Nombre del Equipo
+      doc.fontSize(10).fillColor('black').text(item.item_nombre, 50, yActual, { width: 280 });
+      
+      // 🚀 NUEVO: Código del Equipo (justo debajo del nombre)
+      doc.fontSize(8).fillColor('blue').text(`Cód: ${item.codigo || 'S/N'}`, 50, doc.y);
+      
+      // Restauramos posición para las otras columnas
+      doc.fontSize(10).fillColor('black');
       doc.text(item.cantidad.toString(), 350, yActual);
       doc.text(`$${Number(item.precio_unitario).toFixed(2)}`, 420, yActual);
-      doc.text(`$${(item.cantidad * item.precio_unitario).toFixed(2)}`, 480, yActual);
+      doc.text(`$${((item.cantidad * item.precio_unitario)).toFixed(2)}`, 480, yActual);
       
       doc.moveDown(0.5);
       
-      // Si tiene garantía, la ponemos chiquita abajo
+      // Si tiene garantía
       if (item.garantia_dias > 0) {
-        doc.fontSize(8).fillColor('gray').text(`Garantía: ${item.garantia_dias} días`, 50, doc.y);
-        doc.fontSize(10).fillColor('black'); // Regresamos al color y tamaño normal
+        doc.fontSize(8).fillColor('gray').text(`Garantía: ${item.garantia_dias} días`, 50, doc.y+4);
+        doc.fontSize(10).fillColor('black');
         doc.moveDown(0.5);
       }
+      
+      // Espacio extra entre ítems
+      doc.moveDown(0.5);
     });
 
     // Línea final de tabla
@@ -135,11 +145,11 @@ const descargarPDF = async (req, res) => {
     doc.text('________________________________', { align: 'center' });
     doc.text('Firma de Recibido Conforme', { align: 'center' });
 
-    // 5. Cerramos y enviamos el documento
+    // 5. Cerramos
     doc.end();
 
   } catch (error) {
-    // Solo enviamos error si el PDF aún no se empezó a mandar
+    console.error("Error PDF:", error);
     if (!res.headersSent) {
       res.status(500).json({ error: 'Error al generar el documento PDF' });
     }

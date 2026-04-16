@@ -10,13 +10,16 @@ const procesarVentaB2B = async (datosVenta, vendedorId) => {
     throw new Error('Empresa, sucursal y al menos un artículo son obligatorios.');
   }
 
+  const nombreEmpresaReal = await salesRepository.obtenerNombreEmpresa(empresaId);
+  const detalleSucursal = await salesRepository.obtenerDetalleSucursal(sucursalId);
+  const destinoFinal = `${nombreEmpresa} - ${detalleSucursal.nombre_sucursal}`;
   const totalVenta = items.reduce((total, item) => total + (item.cantidad * item.precioUnitario), 0);
 
   // 🔥 2. GUARDAMOS LA VENTA CON LOS PUENTES RELACIONALES
   const nuevaVenta = await salesRepository.crearCabeceraVenta({
     empresa_id: empresaId,       // Apunta a clientes_empresas
     sucursal_id: sucursalId,     // Apunta a clientes_sucursales
-    cliente_nombre: 'Venta B2B', // Texto por defecto por si tu BD aún lo exige
+    cliente_nombre: nombreEmpresaReal || 'Cliente B2B', // Texto por defecto por si tu BD aún lo exige
     numero_comprobante: numeroComprobante || null,
     po_cliente: poCliente || null,
     notas_adicionales: notasAdicionales || '',
@@ -32,11 +35,11 @@ const procesarVentaB2B = async (datosVenta, vendedorId) => {
       itemId: item.itemId,
       cantidad: item.cantidad,
       tipoMovimiento: 'SALIDA',
-      destinoNombre: 'Cliente B2B', // Opcional: Podrías buscar el nombre real de la sucursal
+      destinoNombre: destinoFinal, // Opcional: Podrías buscar el nombre real de la sucursal
       precioVenta: item.precioUnitario,
       garantiaDias: item.garantiaDias,
       numeroComprobante: numeroComprobante, 
-      poCliente: poCliente,
+      poNumero: poCliente,           
       ventaId: nuevaVenta.id
     }, vendedorId);
 

@@ -89,4 +89,15 @@ const getHistorial = async (buscarTerm) => {
   };
 };
 
+// sales.repository.js
+const obtenerNombreEmpresa = async (empresaId) => {
+  const { data, error } = await supabase
+    .from('clientes_empresas')
+    .select('nombre_comercial')
+    .eq('id', empresaId)
+    .single();
+  if (error) return null;
+  return data.nombre_comercial;
+};
+
 module.exports = { crearCabeceraVenta, crearDetallesVenta, getHistorial, obtenerDetalleVenta };

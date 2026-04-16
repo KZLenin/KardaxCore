@@ -14,21 +14,22 @@ const crearMovimiento = async (datos, usuarioId) => {
   let nuevoStock = item.cantidad_stock;
   let accionHistorial = '';
   let descripcionHistorial = '';
-  let destinoNombreMovimiento = 'Bodega Principal'; // Default para ingresos
+  let destinoNombreMovimiento = 'Bodega Principal';
   
-  // Extraemos el motivo detallado (ej. "Devolución de cliente", "Motor quemado")
+  // 🔥 FIX 1: Declaramos la variable del estado inicial para que no explote
+  let nuevoEstadoOperativo = item.estado_operativo || 'Operativo'; 
+  
   const motivoDetalle = datos.motivo ? ` Motivo: ${datos.motivo}.` : '';
 
   // 2. LA BIFURCACIÓN LÓGICA DE BODEGA
   if (tipo === 'INGRESO') {
-    // Escenario 1: Ingresar Equipo
     nuevoStock = item.cantidad_stock + datos.cantidad;
     accionHistorial = 'INGRESO_BODEGA';
     descripcionHistorial = `Se ingresaron ${datos.cantidad} unidades de ${item.nombre}.` + motivoDetalle;
     destinoNombreMovimiento = 'Bodega (Ingreso Interno)';
-    nuevoEstadoOperativo = 'Operativo';
+    nuevoEstadoOperativo = 'Operativo'; // Vuelve a estar disponible
+
   } else if (tipo === 'BAJA') {
-    // Escenario 2: Dar de Baja (Se resta del stock, no es una venta)
     if (item.cantidad_stock < datos.cantidad) {
       throw new Error(`No puedes dar de baja ${datos.cantidad}. Solo hay ${item.cantidad_stock} unidades disponibles.`);
     }
@@ -39,51 +40,50 @@ const crearMovimiento = async (datos, usuarioId) => {
     if (nuevoStock === 0) nuevoEstadoOperativo = 'Agotado/Baja';
 
   } else if (tipo === 'MANTENIMIENTO') {
-    // Escenario 3: Taller (Integración con Módulo Técnico)
     accionHistorial = 'ENVIO_TALLER';
     descripcionHistorial = `El equipo fue ingresado a Mantenimiento/Taller.` + motivoDetalle;
     destinoNombreMovimiento = 'Taller Técnico';
-    nuevoEstadoOperativo = 'En Reparación';
-    
-    // 1. Bloqueamos el equipo en el inventario
-    await repository.actualizarEstadoOperativo(item.id, 'En Reparación');
+    nuevoEstadoOperativo = 'En Reparación'; // Bloqueado para ventas
 
-    // 2. ¡Creamos la Orden de Trabajo automáticamente!
+    // Creamos la Orden de Trabajo automáticamente
     const nuevaOrden = {
       item_id: item.id,
-      creado_por: usuarioId, // El bodeguero/admin que escaneó
-      tipo_mantenimiento: 'Correctivo', // Por defecto, si viene roto es correctivo
+      creado_por: usuarioId, 
+      tipo_mantenimiento: 'Correctivo', 
       estado: 'Pendiente',
-      prioridad: 'Alta', // Podríamos hacerlo dinámico después
+      prioridad: 'Alta', 
       motivo: datos.motivo || 'Ingreso desde Terminal POS de Bodega'
     };
     await repository.crearOrdenTrabajo(nuevaOrden);
 
   } else if (tipo === 'SALIDA') {
-     // Conservamos SALIDA por si la Terminal B2B lo sigue llamando desde sales.service
     if (item.cantidad_stock < datos.cantidad) {
       throw new Error(`Stock insuficiente. Solo quedan ${item.cantidad_stock} unidades.`);
     }
     nuevoStock = item.cantidad_stock - datos.cantidad;
     accionHistorial = 'DESPACHO_VENTA';
+    // Usamos el destinoNombre dinámico que ahora manda sales.service.js
     descripcionHistorial = `Se despacharon ${datos.cantidad} unidades hacia ${datos.destinoNombre || 'Cliente'}.`;
     destinoNombreMovimiento = datos.destinoNombre || 'Cliente Final';
-    if (datos.ventaId) nuevoEstadoOperativo = 'Vendido';
+    if (datos.ventaId) nuevoEstadoOperativo = 'Vendido'; // Marcado como vendido
   } else {
     throw new Error('Tipo de movimiento no soportado. Usa INGRESO, BAJA o MANTENIMIENTO.');
   }
 
-  // 3. Actualizar Inventario (Solo si el stock realmente cambió)
-  if (nuevoStock !== item.cantidad_stock) {
+  // 🔥 FIX 2: Actualizar Inventario (Stock Y ESTADO OPERATIVO)
+  if (nuevoStock !== item.cantidad_stock || nuevoEstadoOperativo !== item.estado_operativo) {
+    // Actualizamos el número
     await repository.actualizarStock(item.id, nuevoStock);
+    // ¡Actualizamos el texto del estado en la base de datos!
+    await repository.actualizarEstadoOperativo(item.id, nuevoEstadoOperativo);
   }
 
-  // 4. Guardar Movimiento Logístico
+  // 4. Guardar Movimiento Logístico (El Log)
   const nuevoMovimiento = {
     item_id: datos.itemId,
-    tipo_movimiento: tipo === 'BAJA' || tipo === 'MANTENIMIENTO' ? 'SALIDA' : tipo, // Mapeo para la BD
+    tipo_movimiento: tipo === 'BAJA' || tipo === 'MANTENIMIENTO' ? 'SALIDA' : tipo, 
     destino_nombre: destinoNombreMovimiento,
-    po_numero: datos.poNumero || null,
+
     venta_id: datos.ventaId || null,
     fecha_movimiento: new Date().toISOString()
   };
@@ -99,7 +99,7 @@ const crearMovimiento = async (datos, usuarioId) => {
   };
   await repository.insertarHistorial(nuevoHistorial);
 
-  return { ...movimientoGuardado, item, stockRestante: nuevoStock };
+  return { ...movimientoGuardado, item, stockRestante: nuevoStock, estado: nuevoEstadoOperativo };
 };
 
 const buscarParaMovimiento = async (codigo) => {
