@@ -89,7 +89,7 @@ const getHistorial = async (buscarTerm) => {
   };
 };
 
-// sales.repository.js
+
 const obtenerNombreEmpresa = async (empresaId) => {
   const { data, error } = await supabase
     .from('clientes_empresas')
@@ -100,4 +100,14 @@ const obtenerNombreEmpresa = async (empresaId) => {
   return data.nombre_comercial;
 };
 
-module.exports = { crearCabeceraVenta, crearDetallesVenta, getHistorial, obtenerDetalleVenta };
+const obtenerDetalleSucursal = async (sucursalId) => {
+  const { data, error } = await supabase
+    .from('clientes_sucursales')
+    .select('nombre_sucursal')
+    .eq('id', sucursalId)
+    .single();
+  if (error) return null;
+  return data; // Aquí devolvemos el objeto porque el service usa detalleSucursal.nombre_sucursal
+};
+
+module.exports = { crearCabeceraVenta, crearDetallesVenta, getHistorial, obtenerDetalleVenta, obtenerNombreEmpresa, obtenerDetalleSucursal };

@@ -1,12 +1,13 @@
 const { get } = require('./inventory.routes');
 const inventoryService = require('./inventory.service');
-const { generarPdfEtiquetas } = require('../../utils/barcodeGenerator'); // Ajusta la ruta a donde guardaste el archivo
+const { generarPdfEtiquetas, generarPdfEtiquetasMasivo } = require('../../utils/barcodeGenerator'); // Ajusta la ruta a donde guardaste el archivo
 
 const registrarEntrada = async (req, res, next) => {
   try {
     const datosItem = req.body;
-    datosItem.sedeId = req.usuario.sedeId || req.body.sedeId;
+    datosItem.sedeId = req.body.sedeId || req.usuario.sedeId; 
     datosItem.creadoPor = req.usuario.id;
+
     const nuevoItem = await inventoryService.registrarEntrada(datosItem);
 
     res.status(201).json({
@@ -142,9 +143,66 @@ const actualizarProveedor = async (req, res) => {
   }
 };
 
+const getSedes = async (req, res) => {
+  try { res.status(200).json(await inventoryService.listarSedes()); } 
+  catch (error) { res.status(400).json({ error: error.message }); }
+};
+
+const descargarEtiquetasMasivas = async (req, res) => {
+  try {
+    const { ids } = req.body; 
+    
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'No se enviaron equipos para imprimir' });
+    }
+
+    const equiposValidos = [];
+
+    // 🔥 FIX: Bucle seguro. Si un equipo falla (ej. no tiene código), el "catch" interno 
+    // lo atrapa en silencio y el bucle sigue con el próximo equipo sin tumbar el servidor.
+    for (const id of ids) {
+      try {
+        const equipo = await inventoryService.obtenerEquipoPorId(id);
+        
+        // Mapeamos los datos con los nombres EXACTOS que espera el motor PDF
+        if (equipo && equipo.codigo_barras) {
+          equiposValidos.push({
+            codigo: equipo.codigo_barras,
+            nombreEquipo: equipo.nombre
+          });
+        }
+      } catch (itemError) {
+        // Solo avisamos por consola interna, pero NO detenemos la impresión de los demás
+        console.log(`⚠️ Equipo omitido en lote (ID: ${id}): ${itemError.message}`);
+      }
+    }
+
+    // Si después de revisar todos, resulta que NINGUNO tenía código de barras:
+    if (equiposValidos.length === 0) {
+      return res.status(400).json({ 
+        error: 'Ninguno de los equipos seleccionados tiene un código de barras asignado para imprimir.' 
+      });
+    }
+
+    // 3. Llamamos al motor V8 con los que sí sobrevivieron
+    const pdfBuffer = await generarPdfEtiquetasMasivo(equiposValidos);
+
+    // 4. Enviamos el PDF
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="etiquetas_lote_${Date.now()}.pdf"`);
+    res.send(pdfBuffer);
+
+  } catch (error) {
+    console.error('🚨 ERROR AL GENERAR ETIQUETAS MASIVAS:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Error interno del servidor al generar etiquetas' });
+    }
+  }
+};
+
 module.exports = {
   registrarEntrada, crearCategoria, registrarProveedor,
-  getCategorias, getProveedores, getInventario, getHistorial,
+  getCategorias, getProveedores, getInventario, getHistorial, getSedes,
   actualizarEquipo, actualizarCategoria, actualizarProveedor,
-  descargarEtiquetas,
+  descargarEtiquetas, descargarEtiquetasMasivas,
 };

@@ -140,8 +140,10 @@ const obtenerEquipoPorId = async (id) => {
   return equipo;
 };
 
+const listarSedes = async () => await inventoryRepository.obtenerSedes();
+
 module.exports = {
   registrarEntrada, registrarCategoria, registrarProveedor,
-  listarCategorias, listarProveedores, listarInventario, obtenerHistorial, obtenerEquipoPorId,
+  listarCategorias, listarProveedores, listarInventario, obtenerHistorial, obtenerEquipoPorId, listarSedes,
   actualizarEquipo, actualizarCategoria, actualizarProveedor,
 };

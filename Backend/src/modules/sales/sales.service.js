@@ -12,7 +12,7 @@ const procesarVentaB2B = async (datosVenta, vendedorId) => {
 
   const nombreEmpresaReal = await salesRepository.obtenerNombreEmpresa(empresaId);
   const detalleSucursal = await salesRepository.obtenerDetalleSucursal(sucursalId);
-  const destinoFinal = `${nombreEmpresa} - ${detalleSucursal.nombre_sucursal}`;
+  const destinoFinal = `${nombreEmpresaReal} - ${detalleSucursal.nombre_sucursal}`;
   const totalVenta = items.reduce((total, item) => total + (item.cantidad * item.precioUnitario), 0);
 
   // 🔥 2. GUARDAMOS LA VENTA CON LOS PUENTES RELACIONALES

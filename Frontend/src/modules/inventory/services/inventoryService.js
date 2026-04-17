@@ -114,6 +114,26 @@ export const inventoryService = {
     // Aquí llamas a tu API de backend (la ruta que definimos antes)
     const { data } = await httpClient.post('/inventory/bulk', items);
     return data;
-  }
+  },
 
+  getSedes: async () => {
+  try {
+    const response = await httpClient.get('/inventory/sedes');
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.error || 'Error al cargar sedes';
+  }
+},
+
+imprimirEtiquetasMasivas: async (idsArray) => {
+  try {
+    // Es clave el responseType: 'blob' para que no se corrompa el PDF
+    const response = await httpClient.post('/inventory/etiquetas/masivo', { ids: idsArray }, {
+      responseType: 'blob' 
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.error || 'Error al descargar las etiquetas';
+  }
+},
 };

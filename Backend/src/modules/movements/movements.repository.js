@@ -132,8 +132,20 @@ const registrarHistorialLiberacion = async (itemId, tipoAccion, descripcion) => 
   if (error) throw new Error(`Error al guardar bitácora de taller: ${error.message}`);
 };
 
+const actualizarKardex = async (itemId, nuevoStock, nuevoEstado) => {
+  const { error } = await supabase
+    .from('inventario')
+    .update({ 
+      cantidad_stock: nuevoStock,
+      estado_operativo: nuevoEstado 
+    })
+    .eq('id', itemId);
+
+  if (error) throw new Error(`Error actualizando inventario: ${error.message}`);
+};
+
 module.exports = { 
   obtenerItem, buscarItemPorCodigo, obtenerHistorial, obtenerHistorialDeItem, obtenerVentaDeItem,
-  actualizarStock, actualizarEstadoOperativo, actualizarEstadoEquipo,
+  actualizarStock, actualizarEstadoOperativo, actualizarEstadoEquipo, actualizarKardex,
   insertarMovimiento, insertarHistorial, crearOrdenTrabajo, registrarHistorialLiberacion,
 };

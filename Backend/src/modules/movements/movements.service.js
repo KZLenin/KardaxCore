@@ -65,17 +65,25 @@ const crearMovimiento = async (datos, usuarioId) => {
     // Usamos el destinoNombre dinámico que ahora manda sales.service.js
     descripcionHistorial = `Se despacharon ${datos.cantidad} unidades hacia ${datos.destinoNombre || 'Cliente'}.`;
     destinoNombreMovimiento = datos.destinoNombre || 'Cliente Final';
-    if (datos.ventaId) nuevoEstadoOperativo = 'Vendido'; // Marcado como vendido
+    if (datos.ventaId) {
+      // Si vendes la última unidad (ej. Laptop), se marca como Vendido.
+      // Si aún te queda stock (ej. 50 metros de cable restantes), sigue Operativo.
+      nuevoEstadoOperativo = nuevoStock === 0 ? 'Vendido' : 'Operativo'; 
+    }
   } else {
     throw new Error('Tipo de movimiento no soportado. Usa INGRESO, BAJA o MANTENIMIENTO.');
   }
 
-  // 🔥 FIX 2: Actualizar Inventario (Stock Y ESTADO OPERATIVO)
+  // 🔥 FIX: Actualizamos Stock y Estado al mismo tiempo (Atómico)
   if (nuevoStock !== item.cantidad_stock || nuevoEstadoOperativo !== item.estado_operativo) {
-    // Actualizamos el número
-    await repository.actualizarStock(item.id, nuevoStock);
-    // ¡Actualizamos el texto del estado en la base de datos!
-    await repository.actualizarEstadoOperativo(item.id, nuevoEstadoOperativo);
+    
+    // Si la cantidad llega a 0 por una BAJA normal (NO por venta), forzamos a Agotado
+    if (nuevoStock === 0 && nuevoEstadoOperativo !== 'Vendido') {
+      nuevoEstadoOperativo = 'Agotado/Baja';
+    }
+    
+    // Llamamos a la BD con los datos correctos
+    await repository.actualizarKardex(item.id, nuevoStock, nuevoEstadoOperativo);
   }
 
   // 4. Guardar Movimiento Logístico (El Log)
@@ -94,7 +102,8 @@ const crearMovimiento = async (datos, usuarioId) => {
     item_id: item.id,
     tipo_accion: accionHistorial,
     descripcion: descripcionHistorial,
-    usuario_responsable: usuarioId, 
+    usuario_responsable: usuarioId,
+    venta_id: datos.ventaId || null, 
     fecha_registro: new Date().toISOString()
   };
   await repository.insertarHistorial(nuevoHistorial);

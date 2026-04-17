@@ -58,4 +58,62 @@ const generarPdfEtiquetas = async (codigo, nombreEquipo, cantidad) => {
   });
 };
 
-module.exports = { generarPdfEtiquetas };
+const generarPdfEtiquetasMasivo = async (equipos) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // 1. Configuramos el tamaño de la etiqueta (50x25mm aprox / 144x72pt)
+      const doc = new PDFDocument({
+        size: [144, 72],
+        margins: { top: 2, bottom: 2, left: 5, right: 5 }
+      });
+
+      const buffers = [];
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+
+      // 2. Iteramos sobre el array de equipos seleccionados
+      for (let i = 0; i < equipos.length; i++) {
+        const { codigo, nombreEquipo } = equipos[i];
+
+        // Generamos el buffer de imagen para el código actual
+        const barcodeBuffer = await bwipjs.toBuffer({
+          bcid: 'code128',
+          text: codigo,
+          scale: 3,
+          height: 12,
+          includetext: false,
+        });
+
+        // Si no es la primera etiqueta, saltamos a una nueva página física
+        if (i > 0) doc.addPage();
+
+        // --- ENCABEZADO GYMTECH (Misma posición que tu original) ---
+        doc.fontSize(8)
+           .font('Times-Bold')
+           .text("GymTech", 5, 5, { align: 'left', width: 144 });
+
+        // --- NOMBRE DEL EQUIPO ---
+        doc.fontSize(7)
+           .font('Helvetica-Bold')
+           .text(nombreEquipo.substring(0, 35).toUpperCase(), 0, 16, { align: 'center', width: 144 });
+
+        // --- IMAGEN DEL CÓDIGO DE BARRAS ---
+        doc.image(barcodeBuffer, 5, 25, { fit: [134, 35], align: 'center' });
+
+        // --- CÓDIGO EN LETRAS ---
+        doc.fontSize(8)
+           .font('Courier-Bold')
+           .text(codigo, 0, 58, { align: 'center', width: 144 });
+      }
+
+      // 3. Finalizamos el documento
+      doc.end();
+
+    } catch (error) {
+      console.error("Error generando lote de etiquetas:", error);
+      reject(error);
+    }
+  });
+};
+
+module.exports = { generarPdfEtiquetas, generarPdfEtiquetasMasivo };

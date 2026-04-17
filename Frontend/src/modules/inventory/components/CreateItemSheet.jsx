@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast"; //
 // 1. EL BLINDAJE (Mismo Zod Schema)
 const formSchema = z.object({
   nombre: z.string().min(3, "Mínimo 3 letras"),
+  sedeId: z.string().min(1, "Bodega requerida"),
   categoriaId: z.string().min(1, "Requerido"),
   proveedorId: z.string().optional(),
   serieFabricante: z.string().optional(),
@@ -24,7 +25,7 @@ const formSchema = z.object({
   unidadMedida: z.string().min(1, "Requerido"),
 });
 
-const CreateItemSheet = ({ categorias = [], proveedores = [], onCreated }) => {
+const CreateItemSheet = ({ sedes = [], categorias = [], proveedores = [], onCreated }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -34,6 +35,7 @@ const CreateItemSheet = ({ categorias = [], proveedores = [], onCreated }) => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       nombre: "",
+      sedeId: "",
       categoriaId: "",
       proveedorId: "",
       serieFabricante: "",
@@ -109,8 +111,27 @@ const CreateItemSheet = ({ categorias = [], proveedores = [], onCreated }) => {
               </FormItem>
             )} />
 
-            {/* 2. Categoría y Proveedor (Grouped en grid con mejor separación) */}
             <div className="grid grid-cols-2 gap-x-4 gap-y-6">
+              <FormField control={form.control} name="sedeId" render={({ field }) => (
+                <FormItem className="space-y-1.5">
+                  <FormLabel className="text-sm font-semibold text-zinc-900">Ubicación / Bodega *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="h-10 border-zinc-200 focus:ring-1 focus:ring-blue-500 shadow-sm">
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {sedes.map(sede => (
+                        <SelectItem key={sede.id} value={sede.id.toString()}>{sede.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+            
               <FormField control={form.control} name="categoriaId" render={({ field }) => (
                 <FormItem className="space-y-1.5">
                   <FormLabel className="text-sm font-semibold text-zinc-900">Categoría *</FormLabel>

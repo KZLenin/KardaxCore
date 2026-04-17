@@ -173,9 +173,19 @@ const actualizarProveedor = async (id, datosActualizados) => {
   return data;
 };
 
+const obtenerSedes = async () => {
+  const { data, error } = await supabase
+    .from('sedes')
+    .select('id, nombre')
+    .order('nombre', { ascending: true });
+    
+  if (error) throw new Error(`Error al obtener sedes: ${error.message}`);
+  return data;
+};
+
 module.exports = {
   crearItemKardex, crearCategoria, crearProveedor, registrarHistorial,
-  obtenerCategorias, obtenerProveedores, obtenerInventario, obtenerHistorialItem, obtenerItemPorId,
+  obtenerCategorias, obtenerProveedores, obtenerInventario, obtenerHistorialItem, obtenerItemPorId, obtenerSedes,
   actualizarItem, actualizarCategoria, actualizarProveedor,
   importarItemsMasivo,
 };
