@@ -68,7 +68,11 @@ const obtenerInventario = async (filtros) => {
   if (filtros.proveedorId) query = query.eq('prov_id', filtros.proveedorId);
   
   // Filtro de búsqueda por nombre (opcional pero muy útil)
-  if (filtros.buscar) query = query.ilike('nombre', `%${filtros.buscar}%`);
+  if (filtros.buscar) {
+    query = query.or(
+      `nombre.ilike.%${filtros.buscar}%,codigo_barras.ilike.%${filtros.buscar}%,serie_fabricante.ilike.%${filtros.buscar}%`
+    );
+  }
 
   // 3. Ordenamiento Alfabético (Requerido)
   query = query.order('nombre', { ascending: true });

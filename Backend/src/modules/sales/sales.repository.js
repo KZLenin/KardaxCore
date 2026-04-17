@@ -31,8 +31,10 @@ const getHistorial = async (buscarTerm) => {
       .order('fecha_venta', { ascending: false });
 
     if (buscarTerm) {
-      query = query.or(`cliente_nombre.ilike.%${buscarTerm}%,numero_comprobante.ilike.%${buscarTerm}%`);
-    }
+    query = query.or(
+      `cliente_nombre.ilike.%${buscarTerm}%,numero_comprobante.ilike.%${buscarTerm}%,po_cliente.ilike.%${buscarTerm}%`
+    );
+  }
 
     const { data, error } = await query;
     if (error) throw error;
