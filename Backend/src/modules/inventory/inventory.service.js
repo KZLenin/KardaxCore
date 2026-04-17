@@ -142,8 +142,35 @@ const obtenerEquipoPorId = async (id) => {
 
 const listarSedes = async () => await inventoryRepository.obtenerSedes();
 
+const subirImagenEquipo = async (itemId, file) => {
+  if (!itemId) throw new Error('El ID del equipo es obligatorio.');
+  if (!file) throw new Error('No se detectó ninguna imagen en la petición.');
+
+  // 1. Blindaje: Solo aceptamos imágenes
+  const formatosValidos = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!formatosValidos.includes(file.mimetype)) {
+    throw new Error('Formato no válido. Sube JPG, PNG o WEBP.');
+  }
+
+  // 2. Creamos un nombre único: idDelEquipo_170948392.jpg
+  const extension = file.originalname.split('.').pop();
+  const nombreArchivo = `${itemId}_${Date.now()}.${extension}`;
+
+  // 3. Mandamos el Buffer al repositorio (Storage)
+  const urlPublica = await inventoryRepository.subirImagenStorage(
+    file.buffer, 
+    nombreArchivo, 
+    file.mimetype
+  );
+
+  // 4. Guardamos la URL en la tabla del equipo
+  await inventoryRepository.actualizarImagenUrl(itemId, urlPublica);
+
+  return urlPublica; // Devolvemos el link al Frontend
+};
+
 module.exports = {
-  registrarEntrada, registrarCategoria, registrarProveedor,
+  registrarEntrada, registrarCategoria, registrarProveedor, subirImagenEquipo,
   listarCategorias, listarProveedores, listarInventario, obtenerHistorial, obtenerEquipoPorId, listarSedes,
   actualizarEquipo, actualizarCategoria, actualizarProveedor,
 };

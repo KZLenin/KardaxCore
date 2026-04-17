@@ -46,4 +46,21 @@ const getHistorialCompleto = async (req, res) => {
   }
 };
 
-module.exports = { registrarMovimientoLogistico, buscarPorCodigo, getHistorialCompleto };
+const registrarBaja = async (req, res) => {
+  try {
+    const { id } = req.params; // ID del equipo
+    const { motivo, cantidadActual } = req.body;
+    const file = req.file; // La foto atrapada por multer
+
+    await movementsService.registrarBajaConEvidencia(
+      { itemId: id, motivo, cantidadActual: Number(cantidadActual) },
+      file,
+      req.usuario.id
+    );
+
+    res.status(200).json({ mensaje: 'Equipo dado de baja y evidencia guardada.' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+module.exports = { registrarMovimientoLogistico, buscarPorCodigo, getHistorialCompleto, registrarBaja };

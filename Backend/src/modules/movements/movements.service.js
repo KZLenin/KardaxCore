@@ -175,7 +175,34 @@ const listarTodoElHistorial = async () => {
   return await repository.obtenerHistorial();
 };
 
+const registrarBajaConEvidencia = async (datos, file, usuarioId) => {
+  const { itemId, motivo, cantidadActual } = datos;
+
+  if (!file) throw new Error('La fotografía es obligatoria para dar de baja un equipo.');
+
+  // 1. Subimos la foto al bucket y obtenemos el link directo
+  const extension = file.originalname.split('.').pop();
+  const nombreArchivo = `baja_${itemId}_${Date.now()}.${extension}`;
+  
+  const urlPublica = await repository.subirEvidenciaBaja(
+    file.buffer, 
+    nombreArchivo, 
+    file.mimetype
+  );
+
+  // 2. Ejecutamos el movimiento de salida definitivo (Stock a 0)
+  // IMPORTANTE: Asegúrate de que tu función crearMovimiento le pase la 
+  // 'evidenciaUrl' a la función registrarHistorial que actualizamos arriba.
+  const resultado = await crearMovimiento({
+    itemId: itemId,
+    cantidad: cantidadActual, 
+    tipoMovimiento: 'BAJA',
+    motivo: motivo,
+    evidenciaUrl: urlPublica // 🔥 Pasamos el link
+  }, usuarioId);
+
+  return resultado;
+};
 
 
-
-module.exports = { crearMovimiento, buscarParaMovimiento, listarTodoElHistorial };
+module.exports = { crearMovimiento, buscarParaMovimiento, listarTodoElHistorial, registrarBajaConEvidencia };

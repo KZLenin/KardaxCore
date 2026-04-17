@@ -115,7 +115,7 @@ const obtenerHistorialItem = async (itemId) => {
 };
 
 // Función silenciosa para registrar auditoría (El Cronista)
-const registrarHistorial = async (itemId, tipoAccion, descripcion, usuarioResponsable = 'Sistema') => {
+const registrarHistorial = async (itemId, tipoAccion, descripcion, usuarioResponsable = 'Sistema', ventaId = null, evidenciaUrl = null) => {
   const { error } = await supabase
     .from('historial_seguimiento')
     .insert([{
@@ -123,6 +123,8 @@ const registrarHistorial = async (itemId, tipoAccion, descripcion, usuarioRespon
       tipo_accion: tipoAccion,
       descripcion: descripcion,
       usuario_responsable: usuarioResponsable, // Tu BD lo tiene como texto
+      venta_id: ventaId,
+      evidencia_url: evidenciaUrl,
       ubicacion_actual: 'Mantenimiento' // Opcional, puedes mejorarlo después
     }]);
 
@@ -187,9 +189,41 @@ const obtenerSedes = async () => {
   return data;
 };
 
+// Sube el archivo físico al Bucket de Supabase
+const subirImagenStorage = async (fileBuffer, fileName, mimetype) => {
+  const { data, error } = await supabase.storage
+    .from('inventario') // El nombre exacto de tu bucket público
+    .upload(`equipos/${fileName}`, fileBuffer, {
+      contentType: mimetype,
+      upsert: true // Si suben otra foto con el mismo nombre, la reemplaza
+    });
+
+  if (error) throw new Error(`Error en Supabase Storage: ${error.message}`);
+
+  // Pedimos la URL pública para que React pueda mostrarla
+  const { data: publicData } = supabase.storage
+    .from('inventario')
+    .getPublicUrl(`equipos/${fileName}`);
+
+  return publicData.publicUrl;
+};
+
+// Guarda la URL en la tabla del inventario
+const actualizarImagenUrl = async (id, imagenUrl) => {
+  const { data, error } = await supabase
+    .from('inventario')
+    .update({ imagen_url: imagenUrl })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw new Error(`Error DB al guardar URL: ${error.message}`);
+  return data;
+};
+
 module.exports = {
-  crearItemKardex, crearCategoria, crearProveedor, registrarHistorial,
+  crearItemKardex, crearCategoria, crearProveedor, registrarHistorial, subirImagenStorage,
   obtenerCategorias, obtenerProveedores, obtenerInventario, obtenerHistorialItem, obtenerItemPorId, obtenerSedes,
-  actualizarItem, actualizarCategoria, actualizarProveedor,
+  actualizarItem, actualizarCategoria, actualizarProveedor, actualizarImagenUrl,
   importarItemsMasivo,
 };

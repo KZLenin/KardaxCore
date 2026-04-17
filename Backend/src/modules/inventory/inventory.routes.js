@@ -4,14 +4,18 @@ const inventoryController = require('./inventory.controller');
 
 // Importamos a nuestro guardia
 const { protegerRuta, soloRol } = require('../../core/middlewares/auth.middleware');
-
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 } // Límite de 5MB por foto para no reventar tu nube
+});
 
 
 router.post('/entrada', protegerRuta, soloRol('ADMIN'), inventoryController.registrarEntrada);
 router.post('/categorias', protegerRuta, soloRol('ADMIN'), inventoryController.crearCategoria);
 router.post('/proveedores', protegerRuta, inventoryController.registrarProveedor);
 router.post('/etiquetas/masivo', protegerRuta, inventoryController.descargarEtiquetasMasivas);
-    
+router.post('/:id/imagen', protegerRuta, upload.single('imagen'), inventoryController.subirImagen);
+
 router.get('/categorias', protegerRuta, inventoryController.getCategorias);
 router.get('/proveedores', protegerRuta, inventoryController.getProveedores);
 router.get('/', protegerRuta, inventoryController.getInventario);

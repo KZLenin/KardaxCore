@@ -200,8 +200,26 @@ const descargarEtiquetasMasivas = async (req, res) => {
   }
 };
 
+const subirImagen = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const file = req.file; // 🔥 Multer inyecta el archivo aquí
+
+    const imagenUrl = await inventoryService.subirImagenEquipo(id, file);
+
+    res.status(200).json({ 
+      mensaje: 'Imagen subida y enlazada correctamente', 
+      imagen_url: imagenUrl 
+    });
+  } catch (error) {
+    console.error('[Error al subir imagen]:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+};
+
+
 module.exports = {
-  registrarEntrada, crearCategoria, registrarProveedor,
+  registrarEntrada, crearCategoria, registrarProveedor, subirImagen,
   getCategorias, getProveedores, getInventario, getHistorial, getSedes,
   actualizarEquipo, actualizarCategoria, actualizarProveedor,
   descargarEtiquetas, descargarEtiquetasMasivas,

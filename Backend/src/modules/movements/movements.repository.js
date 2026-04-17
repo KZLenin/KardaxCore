@@ -144,8 +144,26 @@ const actualizarKardex = async (itemId, nuevoStock, nuevoEstado) => {
   if (error) throw new Error(`Error actualizando inventario: ${error.message}`);
 };
 
+const subirEvidenciaBaja = async (fileBuffer, fileName, mimetype) => {
+  const { data, error } = await supabase.storage
+    .from('evidencias') // Tu bucket PÚBLICO
+    .upload(`bajas/${fileName}`, fileBuffer, {
+      contentType: mimetype,
+      upsert: true
+    });
+
+  if (error) throw new Error(`Error subiendo evidencia: ${error.message}`);
+  
+  // Obtenemos la URL pública eterna
+  const { data: publicData } = supabase.storage
+    .from('evidencias')
+    .getPublicUrl(`bajas/${fileName}`);
+
+  return publicData.publicUrl;
+};
+
 module.exports = { 
   obtenerItem, buscarItemPorCodigo, obtenerHistorial, obtenerHistorialDeItem, obtenerVentaDeItem,
   actualizarStock, actualizarEstadoOperativo, actualizarEstadoEquipo, actualizarKardex,
-  insertarMovimiento, insertarHistorial, crearOrdenTrabajo, registrarHistorialLiberacion,
+  insertarMovimiento, insertarHistorial, crearOrdenTrabajo, registrarHistorialLiberacion, subirEvidenciaBaja,
 };
