@@ -1,6 +1,9 @@
 const express = require('express');
+const multer = require('multer');
+
 const router = express.Router();
 const inventoryController = require('./inventory.controller');
+
 
 // Importamos a nuestro guardia
 const { protegerRuta, soloRol } = require('../../core/middlewares/auth.middleware');

@@ -146,7 +146,7 @@ const actualizarKardex = async (itemId, nuevoStock, nuevoEstado) => {
 
 const subirEvidenciaBaja = async (fileBuffer, fileName, mimetype) => {
   const { data, error } = await supabase.storage
-    .from('evidencias') // Tu bucket PÚBLICO
+    .from('tickets-evidencia') // Tu bucket PÚBLICO
     .upload(`bajas/${fileName}`, fileBuffer, {
       contentType: mimetype,
       upsert: true

@@ -48,11 +48,13 @@ const getHistorialCompleto = async (req, res) => {
 
 const registrarBaja = async (req, res) => {
   try {
+    console.log("Cuerpo:", req.body);
+    console.log("Archivo:", req.file);
     const { id } = req.params; // ID del equipo
     const { motivo, cantidadActual } = req.body;
     const file = req.file; // La foto atrapada por multer
 
-    await movementsService.registrarBajaConEvidencia(
+    await service.registrarBajaConEvidencia(
       { itemId: id, motivo, cantidadActual: Number(cantidadActual) },
       file,
       req.usuario.id
@@ -61,6 +63,7 @@ const registrarBaja = async (req, res) => {
     res.status(200).json({ mensaje: 'Equipo dado de baja y evidencia guardada.' });
   } catch (error) {
     res.status(400).json({ error: error.message });
+    console.error("🚨 ERROR REAL EN EL BACKEND:", error);
   }
 };
 module.exports = { registrarMovimientoLogistico, buscarPorCodigo, getHistorialCompleto, registrarBaja };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, ArrowDownToLine, ArrowUpFromLine, Wrench, Check } from 'lucide-react';
+import { Loader2, ArrowDownToLine, ArrowUpFromLine, Wrench, Check, Camera } from 'lucide-react'; // 🔥 Añadimos Camera
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,12 +11,14 @@ import { movementsService } from '../services/movementsService';
 const MovementActionModal = ({ isOpen, onClose, tipoAccion, equipo, onSuccess }) => {
   const [cantidad, setCantidad] = useState(1);
   const [motivo, setMotivo] = useState('');
+  const [evidencia, setEvidencia] = useState(null); // 🔥 Nuevo estado para la foto
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setCantidad(1);
       setMotivo('');
+      setEvidencia(null); // Limpiamos la foto al abrir
     }
   }, [isOpen]);
 
@@ -30,21 +32,49 @@ const MovementActionModal = ({ isOpen, onClose, tipoAccion, equipo, onSuccess })
 
   const Icono = config.icono;
 
+  // 🔥 Manejador para atrapar y validar la foto
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // Limite de 5MB
+        toast.error("La foto debe pesar menos de 5MB");
+        e.target.value = ''; 
+        return;
+      }
+      setEvidencia(file);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (cantidad > config.max && tipoAccion !== 'INGRESO') {
       return toast.error(`No puedes procesar más del stock actual (${equipo.stock})`);
     }
 
+    // 🔥 Validación extra solo para BAJAS
+    if (tipoAccion === 'BAJA' && !evidencia) {
+      return toast.error("La fotografía de evidencia es obligatoria para dar de baja.");
+    }
+
     setIsSubmitting(true);
     try {
-      await movementsService.registrar({
-        itemId: equipo.id,
-        tipoMovimiento: tipoAccion,
-        cantidad: Number(cantidad),
-        motivo: motivo.trim(),
-        destinoNombre: tipoAccion === 'MANTENIMIENTO' ? 'Taller Interno' : (tipoAccion === 'BAJA' ? 'Descarte' : 'Bodega')
-      });
+      if (tipoAccion === 'BAJA') {
+        // 🚀 Si es BAJA, usamos el método especial que armamos para FormData
+        await movementsService.darDeBajaEquipo(
+          equipo.id,
+          { motivo: motivo.trim(), cantidadActual: Number(cantidad) },
+          evidencia
+        );
+      } else {
+        // 🚀 Si es normal, usamos el tuyo de siempre
+        await movementsService.registrar({
+          itemId: equipo.id,
+          tipoMovimiento: tipoAccion,
+          cantidad: Number(cantidad),
+          motivo: motivo.trim(),
+          destinoNombre: tipoAccion === 'MANTENIMIENTO' ? 'Taller Interno' : 'Bodega'
+        });
+      }
       
       toast.success(`${config.titulo} registrado con éxito`);
       onSuccess(); 
@@ -86,6 +116,23 @@ const MovementActionModal = ({ isOpen, onClose, tipoAccion, equipo, onSuccess })
               className="resize-none focus:ring-blue-500 h-24" required
             />
           </div>
+
+          {/* 🔥 SECCIÓN DE FOTO: Se inyecta aquí dinámicamente solo si es BAJA */}
+          {tipoAccion === 'BAJA' && (
+            <div className="bg-rose-50 border-2 border-dashed border-rose-200 rounded-lg p-4 text-center space-y-2">
+              <Label className="font-semibold text-rose-700 uppercase block">Fotografía de Evidencia *</Label>
+              <div className="flex flex-col items-center gap-2">
+                <Camera className="w-8 h-8 text-rose-400" />
+                <Input 
+                  type="file" 
+                  accept="image/jpeg, image/png, image/webp"
+                  onChange={handleFileChange}
+                  className="w-full text-xs file:bg-rose-100 file:text-rose-700 file:border-0 file:rounded-md file:px-4 file:py-1 file:font-semibold hover:file:bg-rose-200"
+                />
+                {evidencia && <p className="text-xs text-emerald-600 font-semibold mt-1">✓ Foto lista: {evidencia.name}</p>}
+              </div>
+            </div>
+          )}
 
           <DialogFooter className="pt-4 border-t border-zinc-100">
             <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>Cancelar</Button>

@@ -1,4 +1,6 @@
 const express = require('express');
+const multer = require('multer');
+
 const router = express.Router();
 const controller = require('./movements.controller');
 const { protegerRuta, soloRol } = require('../../core/middlewares/auth.middleware');
@@ -13,7 +15,7 @@ router.get('/', protegerRuta, controller.getHistorialCompleto);
 
 // POST /api/movements/registrar
 router.post('/registrar', protegerRuta, controller.registrarMovimientoLogistico);
-router.post('/:id/baja', protegerRuta, soloRol('ADMIN'), upload.single('evidencia'), movementsController.registrarBaja);
+router.post('/:id/baja', protegerRuta, upload.single('evidencia'), controller.registrarBaja);
 
 
 
