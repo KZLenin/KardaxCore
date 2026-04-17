@@ -162,9 +162,11 @@ const B2BSalesTerminal = () => {
     setCarrito(carrito.filter(item => item.itemId !== itemId));
   };
 
-  const calcularTotal = () => {
-    return carrito.reduce((total, item) => total + (item.cantidad * item.precioUnitario), 0);
-  };
+  const calcularTotal = carrito.reduce ((total, item) => {
+    const cantidad = Number(item.cantidad) || 0; // Si está vacío, asume 0 para no romper la suma
+    const precio = Number(item.precioUnitario) || 0;
+    return total + (cantidad * precio);
+  }, 0);
 
   // --- ENVÍO AL BACKEND ---
   const procesarVenta = async () => {
@@ -357,8 +359,8 @@ const B2BSalesTerminal = () => {
                               type="number" 
                               min="1" 
                               max={esUnidad ? 1 : item.stockMaximo} 
-                              value={item.cantidad} 
-                              onChange={(e) => actualizarItemCarrito(item.itemId, 'cantidad', Number(e.target.value))} 
+                              value={item.cantidad === 0 ? '' : item.cantidadd} 
+                              onChange={(e) => {const valor = e.target.value;  actualizarItemCarrito(item.itemId, 'cantidad', valor === '' ? '' : Number(valor))}} 
                               className={`h-8 w-full text-center ${esUnidad ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed focus-visible:ring-0' : ''}`}
                               readOnly={esUnidad}
                             />
@@ -366,13 +368,14 @@ const B2BSalesTerminal = () => {
                           <td className="px-4 py-3">
                             <div className="relative">
                               <DollarSign className="w-3 h-3 absolute left-2 top-2.5 text-zinc-400" />
-                              <Input type="number" min="0" step="0.01" value={item.precioUnitario} onChange={(e) => actualizarItemCarrito(item.itemId, 'precioUnitario', Number(e.target.value))} className="h-8 w-full pl-6" />
+                              <Input type="number" min="0" step="0.01" value={item.precioUnitario === 0 ? '' : item.precioUnitario} 
+                              onChange={(e) => {const valor = e.target.value;  actualizarItemCarrito(item.itemId, 'precioUnitario', valor === '' ? '' : Number(valor))}} className="h-8 w-full pl-6" />
                             </div>
                           </td>
                           <td className="px-4 py-3">
                             <div className="relative">
                               <ShieldCheck className="w-3 h-3 absolute left-2 top-2.5 text-zinc-400" />
-                              <Input type="number" min="0" placeholder="Días" value={item.garantiaDias} onChange={(e) => actualizarItemCarrito(item.itemId, 'garantiaDias', Number(e.target.value))} className="h-8 w-full pl-6" />
+                              <Input type="number" min="0" placeholder="Días" value={item.garantiaDias === 0 ? '' : item.garantiaDias} onChange={(e) => {const valor = e.target.value;  actualizarItemCarrito(item.itemId, 'garantiaDias', valor === '' ? '' : Number(valor))}} className="h-8 w-full pl-6" />
                             </div>
                           </td>
                           <td className="px-4 py-3 text-right font-mono font-medium text-zinc-900">
@@ -398,7 +401,7 @@ const B2BSalesTerminal = () => {
               <div className="flex items-center gap-6">
                 <div className="text-right">
                   <p className="text-zinc-400 text-xs uppercase font-bold tracking-wider mb-1">Total a Cobrar</p>
-                  <p className="text-2xl font-mono font-bold">${calcularTotal().toFixed(2)}</p>
+                  <p className="text-2xl font-mono font-bold">${calcularTotal.toFixed(2)}</p>
                 </div>
                 <Button 
                   onClick={procesarVenta} 
