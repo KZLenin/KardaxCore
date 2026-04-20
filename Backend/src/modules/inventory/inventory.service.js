@@ -10,7 +10,14 @@ const registrarEntrada = async (datos) => {
     ? null 
     : datos.serie_fabricante.trim();
 
-  let cantidadFinal = Number(datos.cantidad_stock) || 0;
+  // Equipos externos
+  const esExterno = datos.es_externo === true || datos.es_externo === 'true';
+  const clienteFinal = esExterno ? datos.cliente_id : null;
+  const sucursalFinal = esExterno ? datos.sucursal_id : null;
+  const proveedorFinal = esExterno ? null : datos.proveedorId;
+
+  // Si es externo forzamos a 1, si no, lo que traiga (o 1 si es Unidad)
+  let cantidadFinal = esExterno ? 1 : (Number(datos.cantidad_stock) || 0);
   const unidadTexto = datos.unidad_medida ? datos.unidad_medida.toUpperCase() : '';
 
   if (unidadTexto === 'UNIDAD' || unidadTexto === 'U') {
@@ -21,7 +28,12 @@ const registrarEntrada = async (datos) => {
     ...datos,
     nombre: datos.nombre.trim().toUpperCase(),
     serie_fabricante: serieLimpia,
-    cantidad_stock: cantidadFinal
+    cantidad_stock: cantidadFinal,
+    proveedorId: proveedorFinal,
+    es_externo: esExterno,
+    cliente_id: clienteFinal,
+    sucursal_id: sucursalFinal,
+    notas_ingreso: esExterno ? datos.notas_ingreso : null
   };
   const nuevoItem = await inventoryRepository.crearItemKardex(datosLimpios);
 
@@ -85,7 +97,9 @@ const listarInventario = async (filtros) => {
     // Gracias al join de tu repositorio, aquí tenemos los nombres reales
     categoria: item.categorias?.nombre || 'Sin categoría',
     sede: item.sedes?.nombre || 'N/A',
-    proveedor: item.proveedores?.nombre_empresa || 'N/A',
+    proveedor: item.es_externo 
+      ? `🏢 ${item.clientes_empresas?.nombre_comercial || 'Desconocido'} - Sede: ${item.clientes_sucursales?.nombre_sucursal || 'Matriz'}` 
+      : (item.proveedores?.nombre_empresa || 'N/A'),
     // Usamos los nombres exactos de tu SQL
     stock: item.cantidad_stock, 
     unidad: item.unidad_medida,
@@ -100,17 +114,44 @@ const listarInventario = async (filtros) => {
     cat_id: item.cat_id,
     prov_id: item.prov_id || item.proveedor_id, 
     serie_fabricante: item.serie_fabricante,
-    codigo_barras: item.codigo_barras
+    codigo_barras: item.codigo_barras,
+    es_externo: item.es_externo,
+    cliente_id: item.cliente_id,
+    sucursal_id: item.sucursal_id,
+    notas_ingreso: item.notas_ingreso
   }));
 };
 
 const listarCategorias = async () => await inventoryRepository.obtenerCategorias();
 const listarProveedores = async () => await inventoryRepository.obtenerProveedores();
 
-const actualizarEquipo = async (id, datosActualizados) => {
-  // Aquí podrías validar cosas de negocio (ej. que no cambien a una categoría inactiva)
-  // Como no hay reglas complejas ahora, pasamos directo al repo:
-  return await inventoryRepository.actualizarItem(id, datosActualizados);
+const actualizarEquipo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    // 🔥 AÑADIMOS LOS 3 CAMPOS NUEVOS A LA EXTRACCIÓN
+    const { 
+      nombre, categoria_id, proveedor_id, serie_fabricante, codigo_barras,
+      es_externo, cliente_id, sucursal_id,notas_ingreso 
+    } = req.body;
+
+    const datosLimpios = {
+      nombre,
+      cat_id: categoria_id || null,
+      proveedor_id: proveedor_id || null,
+      serie_fabricante: serie_fabricante || null, 
+      codigo_barras: codigo_barras || null,
+      es_externo: es_externo || false,
+      cliente_id: cliente_id || null,
+      sucursal_id: sucursal_id || null,
+      notas_ingreso: notas_ingreso || null
+    };
+    
+    const equipoActualizado = await inventoryService.actualizarEquipo(id, datosLimpios);
+    res.status(200).json({ mensaje: 'Equipo actualizado', data: equipoActualizado });
+    
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 };
 
 const obtenerHistorial = async (itemId) => {

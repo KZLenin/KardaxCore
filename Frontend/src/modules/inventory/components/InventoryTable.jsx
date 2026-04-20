@@ -17,6 +17,10 @@ const InventoryView = () => {
   const [categorias, setCategorias] = useState([]);
   const [proveedores, setProveedores] = useState([]);
   const [sedes, setSedes] = useState([]);
+
+  const [clientes, setClientes] = useState([]);
+  const [sucursales, setSucursales] = useState([]);
+
   const [loading, setLoading] = useState(true);
   
   const [itemToEdit, setItemToEdit] = useState(null);
@@ -39,9 +43,13 @@ const InventoryView = () => {
         const catData = await inventoryService.getCategorias();
         const provData = await inventoryService.getProveedores();
         const sedesData = await inventoryService.getSedes();
+        const clientesData = await inventoryService.getClientes?.() || []; 
+        const sucursalesData = await inventoryService.getSucursales?.() || [];
         setCategorias(catData);
         setProveedores(provData);
         setSedes(sedesData);
+        setClientes(clientesData);
+        setSucursales(sucursalesData);
       } catch (error) {
         console.error("Error cargando catálogos", error);
       }
@@ -120,7 +128,6 @@ const handleBulkPrint = async () => {
     setIsPrinting(true);
     const blob = await inventoryService.imprimirEtiquetasMasivas(selectedItems);
     
-    // 🔥 FIX: Es SUPER importante decirle al navegador que el blob es un PDF
     // Si no le ponemos el tipo, lo va a descargar igual por precaución.
     const file = new Blob([blob], { type: 'application/pdf' });
     const url = window.URL.createObjectURL(file);
@@ -210,6 +217,8 @@ const handleBulkPrint = async () => {
           sedes={sedes}
           categorias={categorias} 
           proveedores={proveedores} 
+          clientes={clientes} 
+          sucursales={sucursales}
           onCreated={() => setFiltros({ ...filtros })} // Este truco hace que el useEffect vuelva a consultar los datos para actualizar la tabla
         />  
       </div>
@@ -266,6 +275,21 @@ const handleBulkPrint = async () => {
                 <TableCell className="font-mono text-xs text-zinc-600">
                   {item.codigo} 
                 </TableCell>
+
+                <TableCell className="font-medium text-zinc-900">
+                  <div className="flex items-center gap-2">
+                    {item.nombre}
+                    {item.es_externo && (
+                      <Badge className="bg-orange-100 text-orange-800 border-orange-300 font-bold text-[10px] uppercase">
+                        Taller
+                      </Badge>
+                    )}
+                  </div>
+                  {/* Subtítulo con el origen */}
+                  <span className="block text-xs font-normal text-zinc-500 mt-0.5">
+                    {item.proveedor}
+                  </span>
+                </TableCell>
                 
                 <TableCell className="font-medium text-zinc-900">
                   {item.nombre}
@@ -312,6 +336,8 @@ const handleBulkPrint = async () => {
         item={itemToEdit}
         categorias={categorias}
         proveedores={proveedores}
+        clientes={clientes} 
+        sucursales={sucursales}
         onUpdated={() => setFiltros({ ...filtros })} 
       />
 

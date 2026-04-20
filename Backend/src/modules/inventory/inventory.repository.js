@@ -11,7 +11,12 @@ const crearItemKardex = async (datosItem) => {
         nombre: datosItem.nombre,
         serie_fabricante: datosItem.serie_fabricante,
         proveedor_id: datosItem.proveedorId || null,
-        detalles: datosItem.detalles || {} // Si no mandan detalles, guardamos un JSON vacío
+        detalles: datosItem.detalles || {},
+        //Externo
+        es_externo: datosItem.es_externo || false,
+        cliente_id: datosItem.cliente_id || null,
+        sucursal_id: datosItem.sucursal_id || null,
+        notas_ingreso: datosItem.notas_ingreso || null
       }
     ])
     .select() // Pedimos que nos devuelva el registro recién creado
@@ -59,7 +64,9 @@ const obtenerInventario = async (filtros) => {
       *,
       categorias (nombre),
       sedes (nombre),
-      proveedores (nombre_empresa)
+      proveedores (nombre_empresa),
+      clientes_empresas (nombre_comercial),
+      clientes_sucursales (nombre_sucursal),
     `);
 
   // 2. Filtros Dinámicos

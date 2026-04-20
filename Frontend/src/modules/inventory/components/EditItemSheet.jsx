@@ -23,9 +23,14 @@ const formSchema = z.object({
   codigoBarras: z.string().optional(),
   cantidadStock: z.coerce.number().min(0, "Debe ser un número válido"), // Puede ser 0 si se agota
   unidadMedida: z.string().min(1, "Requerido"),
+
+  es_externo: z.boolean().default(false),
+  clienteId: z.string().optional(),
+  sucursalId: z.string().optional(),
+  notasIngreso: z.string().optional()
 });
 
-const EditItemSheet = ({ item, categorias = [], proveedores = [], onUpdated, isOpen, setIsOpen }) => {
+const EditItemSheet = ({ item, categorias = [], proveedores = [], clientes = [], sucursales = [], onUpdated, isOpen, setIsOpen }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   //Edicion o Vista
   const [isEditing, setIsEditing] = useState(false);
@@ -36,16 +41,18 @@ const EditItemSheet = ({ item, categorias = [], proveedores = [], onUpdated, isO
 
   const form = useForm({
     resolver: zodResolver(formSchema),
-    defaultValues: { nombre: "", categoriaId: "", proveedorId: "", serieFabricante: "", codigoBarras: "", cantidadStock: 1, unidadMedida: "UNIDAD" },
+    defaultValues: { nombre: "", categoriaId: "", proveedorId: "", serieFabricante: "", codigoBarras: "", cantidadStock: 1, unidadMedida: "UNIDAD", es_externo: false, clienteId: "", sucursalId: "", notasIngreso: "" },
   });
 
   const watchUnidad = form.watch("unidadMedida");
+  const isExterno = form.watch("es_externo");
+  const watchCliente = form.watch("clienteId");
 
   useEffect(() => {
-    if (watchUnidad === 'UNIDAD') {
+    if (watchUnidad === 'UNIDAD' || isExterno) {
       form.setValue("cantidadStock", 1); 
     }
-  }, [watchUnidad, form]);
+  }, [watchUnidad, isExterno, form]);
 
   useEffect(() => {
     if (item && isOpen) {
@@ -73,7 +80,11 @@ const EditItemSheet = ({ item, categorias = [], proveedores = [], onUpdated, isO
 
       form.setValue("cantidadStock", item.stock || item.cantidad_stock || 1);
       form.setValue("unidadMedida", item.unidad || item.unidad_medida || "UNIDAD");
-      
+      form.setValue("es_externo", !!item.es_externo);
+      form.setValue("clienteId", String(item.cliente_id || ""));
+      form.setValue("sucursalId", String(item.sucursal_id || ""));
+      form.setValue("notasIngreso", item.notas_ingreso || "");
+
     } else if (!isOpen) {
       form.reset();
       setIsEditing(false); 
@@ -91,7 +102,11 @@ const EditItemSheet = ({ item, categorias = [], proveedores = [], onUpdated, isO
         serie_fabricante: values.serieFabricante || null,
         codigo_barras: values.codigoBarras || null,
         cantidad_stock: values.cantidadStock, 
-        unidad_medida: values.unidadMedida
+        unidad_medida: values.unidadMedida,
+        es_externo: values.es_externo,
+        cliente_id: values.clienteId || null,
+        sucursal_id: values.sucursalId || null,
+        notas_ingreso: values.notasIngreso || null
       };
 
       await inventoryService.actualizarEquipo(item.id, dataToUpdate);
@@ -135,6 +150,10 @@ const EditItemSheet = ({ item, categorias = [], proveedores = [], onUpdated, isO
     }
   };
 
+  const categoriasPrincipales = categorias.filter(c => !c.categoria_padre_id);
+  const getSubcategorias = (idPadre) => categorias.filter(c => c.categoria_padre_id === idPadre);
+  const sucursalesFiltradas = sucursales.filter(s => s.empresa_id === watchCliente);
+
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetContent className="w-full sm:max-w-md overflow-y-auto bg-slate-50 border-l border-zinc-200 p-0 flex flex-col">
@@ -167,8 +186,19 @@ const EditItemSheet = ({ item, categorias = [], proveedores = [], onUpdated, isO
         <div className="flex-1 overflow-y-auto">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit, (errores) => {
-    console.error("🛑 ZOD BLOQUEÓ EL ENVÍO. Aquí está el error:", errores);
-  })} className="space-y-6 p-6">
+              console.error("🛑 ZOD BLOQUEÓ EL ENVÍO. Aquí está el error:", errores);
+            })} className="space-y-6 p-6">
+              
+              {/* 🔥 IDENTIFICADOR VISUAL DE TALLER (Solo Lectura, por seguridad) */}
+              {isExterno && (
+                <div className="flex items-center gap-3 p-3 bg-orange-100/80 border border-orange-200 rounded-md text-orange-800">
+                  <Wrench className="w-5 h-5" />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold">Equipo de Cliente (Taller)</span>
+                    <span className="text-xs opacity-80">El origen de este equipo está bloqueado por seguridad.</span>
+                  </div>
+                </div>
+              )}
               
               {/* === SECCIÓN 1: DATOS EDITABLES === */}
               <div className="space-y-4">
