@@ -21,6 +21,7 @@ const salesRoutes = require('./modules/sales/sales.routes'); // Nueva ruta para 
 const usersRoutes = require('./modules/users/users.routes'); // Nueva ruta para usuarios
 const clientsRoutes = require('./modules/clients/client.routes'); // Nueva ruta para clientes
 const dashboardRoutes = require('./modules/dashboard/dashboard.routes'); // Nueva ruta para dashboard
+const sparepartsRoutes = require('./modules/spareparts/spareparts.routes'); // Nueva ruta para repuestos
 
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger-output.json');
@@ -35,6 +36,7 @@ app.use('/api/ventas', salesRoutes); // Nueva ruta para ventas
 app.use('/api/users', usersRoutes); // Nueva ruta para usuarios
 app.use('/api/clientes', clientsRoutes); // Nueva ruta para clientes
 app.use('/api/dashboard', dashboardRoutes); // Nueva ruta para dashboard
+app.use('/api/spareparts', sparepartsRoutes); // Nueva ruta para repuestos 
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
