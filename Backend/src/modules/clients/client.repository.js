@@ -74,8 +74,19 @@ const obtenerSucursalesPorEmpresa = async (empresaId) => {
   return data;
 };
 
+
+const obtenerTodasSucursales = async () => {
+  const { data, error } = await supabase
+    .from('clientes_sucursales')
+    .select('*')
+    .order('nombre_sucursal');
+
+  if (error) throw new Error(`Error BD al obtener todas las sucursales: ${error.message}`);
+  return data;
+};
+
 module.exports = {
-  obtenerClientes, obtenerClientes, obtenerSucursalesPorEmpresa,
+  obtenerClientes, obtenerTodasSucursales, obtenerSucursalesPorEmpresa,
   crearEmpresa, crearSucursal,
   actualizarEmpresa, actualizarSucursal
 };

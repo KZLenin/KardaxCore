@@ -26,12 +26,13 @@ const InventoryView = () => {
   const [itemToEdit, setItemToEdit] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  const [selectedItems, setSelectedItems] = useState([]); // 🔥 Estado para los checkboxes
+  const [selectedItems, setSelectedItems] = useState([]); // Estado para los checkboxes
   const [isPrinting, setIsPrinting] = useState(false); // Para el loading del botón
   // Estado para los filtros activos
   const [filtros, setFiltros] = useState({
     buscar: '',
     categoriaId: 'todas',
+    tipoVista: 'todas',
   });
 
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
@@ -67,6 +68,9 @@ const InventoryView = () => {
         if (filtros.buscar) params.buscar = filtros.buscar;
         if (filtros.categoriaId !== 'todas') params.categoriaId = filtros.categoriaId;
 
+        if (filtros.tipoVista === 'internos') params.es_externo = false;
+        if (filtros.tipoVista === 'externos') params.es_externo = true;
+
         const data = await inventoryService.getAll(params);
         setItems(data);
       } catch (err) {
@@ -100,7 +104,7 @@ const InventoryView = () => {
   };
 
   const limpiarFiltros = () => {
-    setFiltros({ buscar: '', categoriaId: 'todas' });
+    setFiltros({ buscar: '', categoriaId: 'todas', tipoVista: 'todas' });
   };
 
   const categoriasPrincipales = categorias.filter(c => !c.categoria_padre_id);
@@ -183,6 +187,20 @@ const handleBulkPrint = async () => {
                 ))}
               </SelectGroup>
             ))}
+          </SelectContent>
+        </Select>
+
+        <Select 
+          value={filtros.tipoVista} 
+          onValueChange={(value) => setFiltros({ ...filtros, tipoVista: value })}
+        >
+          <SelectTrigger className="w-[180px] bg-white border-zinc-200 shadow-sm">
+            <SelectValue placeholder="Origen del equipo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas" className="font-semibold text-blue-600">Todos los Equipos</SelectItem>
+            <SelectItem value="internos">Items Propios</SelectItem>
+            <SelectItem value="externos">Items Externos</SelectItem>
           </SelectContent>
         </Select>
 
@@ -281,7 +299,7 @@ const handleBulkPrint = async () => {
                     {item.nombre}
                     {item.es_externo && (
                       <Badge className="bg-orange-100 text-orange-800 border-orange-300 font-bold text-[10px] uppercase">
-                        Taller
+                        Externo
                       </Badge>
                     )}
                   </div>

@@ -66,13 +66,19 @@ const obtenerInventario = async (filtros) => {
       sedes (nombre),
       proveedores (nombre_empresa),
       clientes_empresas (nombre_comercial),
-      clientes_sucursales (nombre_sucursal),
+      clientes_sucursales (nombre_sucursal)
     `);
 
   // 2. Filtros Dinámicos
   if (filtros.categoriaId) query = query.eq('cat_id', filtros.categoriaId);
   if (filtros.sedeId) query = query.eq('sede_id', filtros.sede_id);
   if (filtros.proveedorId) query = query.eq('prov_id', filtros.proveedorId);
+
+  if (filtros.es_externo !== undefined) {
+    // Como llega como string ('true' o 'false') desde la web, lo pasamos a booleano real
+    const esExternoBool = filtros.es_externo === 'true'; 
+    query = query.eq('es_externo', esExternoBool);
+  }
   
   // Filtro de búsqueda por nombre (opcional pero muy útil)
   if (filtros.buscar) {
@@ -228,8 +234,18 @@ const actualizarImagenUrl = async (id, imagenUrl) => {
   return data;
 };
 
+const registrarMovimiento = async (datosMovimiento) => {
+  const { error } = await supabase
+    .from('movimiento_logistico') // ⚠️ Asegúrate que así se llame tu tabla exacta en BD
+    .insert([datosMovimiento]);
+
+  if (error) {
+    console.error('🚨 [Error al registrar Movimiento]:', error.message);
+  }
+};
+
 module.exports = {
-  crearItemKardex, crearCategoria, crearProveedor, registrarHistorial, subirImagenStorage,
+  crearItemKardex, crearCategoria, crearProveedor, registrarHistorial, subirImagenStorage, registrarMovimiento,
   obtenerCategorias, obtenerProveedores, obtenerInventario, obtenerHistorialItem, obtenerItemPorId, obtenerSedes,
   actualizarItem, actualizarCategoria, actualizarProveedor, actualizarImagenUrl,
   importarItemsMasivo,

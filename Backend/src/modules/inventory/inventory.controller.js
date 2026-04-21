@@ -55,7 +55,8 @@ const getInventario = async (req, res) => {
       categoriaId: req.query.categoriaId,
       sedeId: req.query.sedeId,
       proveedorId: req.query.proveedorId,
-      buscar: req.query.buscar
+      buscar: req.query.buscar,
+      es_externo: req.query.es_externo
     };
 
     const inventario = await inventoryService.listarInventario(filtros);
@@ -69,14 +70,22 @@ const getInventario = async (req, res) => {
 const actualizarEquipo = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nombre, categoria_id, proveedor_id, serie_fabricante, codigo_barras } = req.body;
+    // 🔥 AÑADIMOS LOS 3 CAMPOS NUEVOS A LA EXTRACCIÓN
+    const { 
+      nombre, categoria_id, proveedor_id, serie_fabricante, codigo_barras,
+      es_externo, cliente_id, sucursal_id,notas_ingreso 
+    } = req.body;
 
     const datosLimpios = {
       nombre,
       cat_id: categoria_id || null,
       proveedor_id: proveedor_id || null,
-      serie_fabricante: serie_fabricante || null, // Le añado el blindaje aquí también por si acaso
-      codigo_barras: codigo_barras || null
+      serie_fabricante: serie_fabricante || null, 
+      codigo_barras: codigo_barras || null,
+      es_externo: es_externo || false,
+      cliente_id: cliente_id || null,
+      sucursal_id: sucursal_id || null,
+      notas_ingreso: notas_ingreso || null
     };
     
     const equipoActualizado = await inventoryService.actualizarEquipo(id, datosLimpios);

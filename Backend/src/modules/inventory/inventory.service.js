@@ -36,6 +36,24 @@ const registrarEntrada = async (datos) => {
     notas_ingreso: esExterno ? datos.notas_ingreso : null
   };
   const nuevoItem = await inventoryRepository.crearItemKardex(datosLimpios);
+  const descripcionHistorial = esExterno
+    ? `Ingreso de equipo de CLIENTE a Taller. Notas al recibir: ${datos.notas_ingreso || 'Sin notas'}`
+    : `Ingreso inicial a BODEGA (Compra/Stock). Stock inicial: ${cantidadFinal} ${datos.unidad_medida}`;
+
+  await inventoryRepository.registrarHistorial(
+    nuevoItem.id,                 // ID del equipo
+    'INGRESO_SISTEMA',            // Tipo de Acción
+    descripcionHistorial,         // El mensaje dinámico
+  );
+
+  await inventoryRepository.registrarMovimiento({
+    item_id: nuevoItem.id,
+    tipo_movimiento: 'ENTRADA',
+    cantidad: cantidadFinal,
+    sede_destino_id: datos.sedeId,
+    usuario_id: datos.creadoPor || null, // 🔥 Para saber quién lo metió
+    observaciones: esExterno ? 'Recepción de equipo de cliente' : 'Ingreso de inventario propio'
+  });
 
 
   return nuevoItem;
@@ -125,33 +143,9 @@ const listarInventario = async (filtros) => {
 const listarCategorias = async () => await inventoryRepository.obtenerCategorias();
 const listarProveedores = async () => await inventoryRepository.obtenerProveedores();
 
-const actualizarEquipo = async (req, res) => {
-  try {
-    const { id } = req.params;
-    // 🔥 AÑADIMOS LOS 3 CAMPOS NUEVOS A LA EXTRACCIÓN
-    const { 
-      nombre, categoria_id, proveedor_id, serie_fabricante, codigo_barras,
-      es_externo, cliente_id, sucursal_id,notas_ingreso 
-    } = req.body;
-
-    const datosLimpios = {
-      nombre,
-      cat_id: categoria_id || null,
-      proveedor_id: proveedor_id || null,
-      serie_fabricante: serie_fabricante || null, 
-      codigo_barras: codigo_barras || null,
-      es_externo: es_externo || false,
-      cliente_id: cliente_id || null,
-      sucursal_id: sucursal_id || null,
-      notas_ingreso: notas_ingreso || null
-    };
-    
-    const equipoActualizado = await inventoryService.actualizarEquipo(id, datosLimpios);
-    res.status(200).json({ mensaje: 'Equipo actualizado', data: equipoActualizado });
-    
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
+const actualizarEquipo = async (id, datosActualizados) => {
+  if (!id) throw new Error('El ID del equipo es obligatorio para actualizar.');
+  return await inventoryRepository.actualizarItem(id, datosActualizados);
 };
 
 const obtenerHistorial = async (itemId) => {

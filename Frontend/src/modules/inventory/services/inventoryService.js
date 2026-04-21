@@ -40,10 +40,49 @@ export const inventoryService = {
 
   registrarEntrada: async (datosItem) => {
     try {
-      const response = await httpClient.post('/inventory/entrada', datosItem);
+      // 🔥 MAPEO CRÍTICO: React (camelCase) -> Supabase/Node (snake_case)
+      const payload = {
+        nombre: datosItem.nombre,
+        sedeId: datosItem.sedeId,          // Convertimos
+        categoriaId: datosItem.categoriaId,    // Convertimos
+        proveedorId: datosItem.proveedorId || null,
+        serie_fabricante: datosItem.serieFabricante || null,
+        codigo_barras: datosItem.codigoBarras || null,
+        cantidad_stock: datosItem.cantidadStock, // Convertimos
+        unidad_medida: datosItem.unidadMedida,   // Convertimos
+        // Nuevos campos de Taller
+        es_externo: datosItem.es_externo,
+        cliente_id: datosItem.clienteId || null,
+        sucursal_id: datosItem.sucursalId || null,
+        notas_ingreso: datosItem.notasIngreso || null
+      };
+
+      const response = await httpClient.post('/inventory/entrada', payload);
       return response.data;
     } catch (error) {
       throw error.response?.data?.error || 'Error al registrar el equipo';
+    }
+  },
+
+  getClientes: async () => {
+    try {
+      
+      const response = await httpClient.get('/clientes'); 
+      return response.data;
+    } catch (error) {
+      console.error("Error cargando clientes:", error);
+      return []; // Devolvemos array vacío para no romper la vista
+    }
+  },
+
+  
+  getSucursales: async () => {
+    try {
+      const response = await httpClient.get('/clientes/sucursales/todas'); 
+      return response.data;
+    } catch (error) {
+      console.error("Error cargando sucursales:", error);
+      return []; // Devolvemos array vacío para no romper la vista
     }
   },
 

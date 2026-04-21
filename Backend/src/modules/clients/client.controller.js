@@ -61,8 +61,17 @@ const getSucursales = async (req, res) => {
   }
 };
 
+const getAllSucursales = async (req, res) => {
+  try {
+    const sucursales = await service.listarTodasSucursales();
+    res.status(200).json(sucursales);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
 module.exports = {
-  getEmpresas, getSucursales,
+  getEmpresas, getSucursales, getAllSucursales,
   crearEmpresa, crearSucursal,
   editarEmpresa, editarSucursal,
 };

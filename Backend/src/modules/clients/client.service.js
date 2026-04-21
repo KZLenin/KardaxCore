@@ -75,8 +75,12 @@ const listarSucursales = async (empresaId) => {
   return await repository.obtenerSucursalesPorEmpresa(empresaId);
 };
 
+const listarTodasSucursales = async () => {
+  return await repository.obtenerTodasSucursales();
+};
+
 module.exports = {
-  listarEmpresas, listarSucursales,
+  listarEmpresas, listarSucursales, listarTodasSucursales,
   registrarEmpresa, registrarSucursal,
   actualizarEmpresa, actualizarSucursal,
 };

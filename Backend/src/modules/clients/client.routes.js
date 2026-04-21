@@ -12,6 +12,7 @@ router.put('/:id', protegerRuta, controller.editarEmpresa);
 
 // ==========================================
 // RUTAS DE SUCURSALES
+router.get('/sucursales/todas', protegerRuta, controller.getAllSucursales);
 // ==========================================
 // Crear una sucursal para una empresa específica
 router.post('/:empresaId/sucursales', protegerRuta, controller.crearSucursal);

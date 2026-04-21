@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Box, ScanText, Check, Pencil, Lock, Unlock, X, Archive, MapPin, AlignLeft, History, Printer, Hash } from "lucide-react";
+import { Loader2, Box, ScanText, Check, Pencil, Lock, Unlock, X, Archive, MapPin, AlignLeft, History, Printer, Hash, Wrench } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,8 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch"; 
+import { Textarea } from "@/components/ui/textarea";
 
 import { inventoryService } from '../services/inventoryService';
 import { useToast } from "@/hooks/use-toast";
@@ -259,25 +261,47 @@ const EditItemSheet = ({ item, categorias = [], proveedores = [], clientes = [],
                     );
                   }} />
 
-                  <FormField control={form.control} name="proveedorId" render={({ field }) => (
-                    <FormItem className="space-y-1.5">
-                      <FormLabel className="text-sm font-semibold text-zinc-900">Proveedor</FormLabel>
-                      <Select disabled={!isEditing} onValueChange={field.onChange} value={field.value || undefined}>
-                        <FormControl>
-                          <SelectTrigger className={`h-10 border-zinc-200 ${!isEditing ? "bg-zinc-100/50 text-zinc-700 opacity-100" : "bg-white focus:ring-1 focus:ring-blue-500"}`}>
-                            <SelectValue placeholder="Opcional" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {proveedores.map(prov => (
-                            <SelectItem key={prov.id} value={prov.id.toString()}>{prov.nombre_empresa}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
+                  {!isExterno ? (
+                    <FormField control={form.control} name="proveedorId" render={({ field }) => (
+                      <FormItem className="space-y-1.5"><FormLabel className="text-sm font-semibold">Proveedor</FormLabel>
+                        <Select disabled={!isEditing} onValueChange={field.onChange} value={field.value || undefined}>
+                          <FormControl><SelectTrigger className={`h-10 ${!isEditing ? "bg-zinc-100/50" : "bg-white"}`}><SelectValue /></SelectTrigger></FormControl>
+                          <SelectContent>{proveedores.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.nombre_empresa}</SelectItem>)}</SelectContent>
+                        </Select><FormMessage />
+                      </FormItem>
+                    )} />
+                  ) : (
+                    <FormField control={form.control} name="clienteId" render={({ field }) => (
+                      <FormItem className="space-y-1.5"><FormLabel className="text-sm font-semibold text-orange-900">Cliente Dueño</FormLabel>
+                        <Select disabled={!isEditing} onValueChange={field.onChange} value={field.value || undefined}>
+                          <FormControl><SelectTrigger className={`h-10 border-orange-200 ${!isEditing ? "bg-orange-50/50" : "bg-white"}`}><SelectValue /></SelectTrigger></FormControl>
+                          <SelectContent>{clientes.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.nombre_comercial}</SelectItem>)}</SelectContent>
+                        </Select><FormMessage />
+                      </FormItem>
+                    )} />
+                  )}
                 </div>
+
+                {isExterno && (
+                  <div className="space-y-4 p-4 border border-orange-200 bg-orange-50/30 rounded-md">
+                    <FormField control={form.control} name="sucursalId" render={({ field }) => (
+                      <FormItem className="space-y-1.5"><FormLabel className="text-sm font-semibold text-orange-900">Sucursal de Origen</FormLabel>
+                        <Select disabled={!isEditing} onValueChange={field.onChange} value={field.value || undefined}>
+                          <FormControl><SelectTrigger className={`h-10 border-orange-200 ${!isEditing ? "bg-transparent" : "bg-white"}`}><SelectValue /></SelectTrigger></FormControl>
+                          <SelectContent>{sucursalesFiltradas.map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.nombre_sucursal}</SelectItem>)}</SelectContent>
+                        </Select><FormMessage />
+                      </FormItem>
+                    )} />
+
+                    <FormField control={form.control} name="notasIngreso" render={({ field }) => (
+                      <FormItem className="space-y-1.5"><FormLabel className="text-sm font-semibold text-orange-900">Notas de Recepción</FormLabel>
+                        <FormControl>
+                          <Textarea readOnly={!isEditing} className={`border-orange-200 resize-none ${!isEditing ? "bg-transparent" : "bg-white"}`} {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )} />
+                  </div>
+                )}
 
                 <FormField control={form.control} name="serieFabricante" render={({ field }) => (
                   <FormItem className="space-y-1.5">
@@ -297,7 +321,7 @@ const EditItemSheet = ({ item, categorias = [], proveedores = [], clientes = [],
                 )} />
               <div className="grid grid-cols-2 gap-x-4 gap-y-6">
                   <FormField control={form.control} name="cantidadStock" render={({ field }) => {
-                    const esUnidad = watchUnidad === 'UNIDAD';
+                    const esUnidad = watchUnidad === 'UNIDAD' || isExterno;
                     const isInputReadOnly = !isEditing || esUnidad;
 
                     let dynamicClass = "pl-9 h-10 border-zinc-200 shadow-sm ";
@@ -337,9 +361,9 @@ const EditItemSheet = ({ item, categorias = [], proveedores = [], clientes = [],
                   <FormField control={form.control} name="unidadMedida" render={({ field }) => (
                     <FormItem className="space-y-1.5">
                       <FormLabel className="text-sm font-semibold text-zinc-900">Unidad de Medida</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={!isEditing}>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={!isEditing || isExterno}>
                         <FormControl>
-                          <SelectTrigger className={`h-10 border-zinc-200 ${!isEditing ? "bg-zinc-100/50 text-zinc-700 opacity-100" : "bg-white focus:ring-1 focus:ring-blue-500"}`}>
+                          <SelectTrigger className={`h-10 border-zinc-200 ${!isEditing || isExterno ? "bg-zinc-100/50 text-zinc-700 opacity-100" : "bg-white focus:ring-1 focus:ring-blue-500"}`}>
                             <SelectValue placeholder="Seleccionar" />
                           </SelectTrigger>
                         </FormControl>
