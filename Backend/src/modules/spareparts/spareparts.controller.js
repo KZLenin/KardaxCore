@@ -3,13 +3,14 @@ const sparepartsService = require('./spareparts.service');
 const agregarRepuesto = async (req, res) => {
   try {
     const { ordenId } = req.params; // Viene de la URL
-    const { item_id, cantidad } = req.body; // Vienen del formulario
+    const { item_id, cantidad, costo } = req.body; // Vienen del formulario
     const usuario_id = req.usuario.id; // Viene del token de auth
 
     const resultado = await sparepartsService.consumirRepuestoEnOrden(
       ordenId, 
       item_id, 
-      Number(cantidad), 
+      Number(cantidad),
+      Number(costo) || 0, 
       usuario_id
     );
 

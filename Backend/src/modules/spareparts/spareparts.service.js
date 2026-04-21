@@ -2,7 +2,7 @@ const sparepartsRepository = require('./spareparts.repository');
 // 🔥 Importamos el repo de inventario para poder descontar el stock y registrar el movimiento
 const inventoryRepository = require('../inventory/inventory.repository'); 
 
-const consumirRepuestoEnOrden = async (ordenId, itemId, cantidadConsumida, usuarioId) => {
+const consumirRepuestoEnOrden = async (ordenId, itemId, cantidadConsumida, costo, usuarioId) => {
   if (!ordenId || !itemId || !cantidadConsumida) {
     throw new Error('Faltan datos para registrar el consumo del repuesto.');
   }
@@ -28,7 +28,7 @@ const consumirRepuestoEnOrden = async (ordenId, itemId, cantidadConsumida, usuar
     item_id: itemId,
     cantidad: cantidadConsumida,
     usuario_id: usuarioId,
-    costo_unitario: 0 // Si en el futuro agregas costo al Kardex, lo jalas en el paso 1 y lo pones aquí
+    costo_unitario: costo
   });
 
   // 5. Dejamos huella en el Historial de Seguimiento (El Cronista)

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Wrench, Check, Lock, Unlock, X, ClipboardCheck, DollarSign } from "lucide-react";
+import { Loader2, Wrench, Check, Lock, Unlock, X, ClipboardCheck, DollarSign, Box, Search, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { maintenanceService } from '../services/maintenanceService';
+import { inventoryService } from '../../inventory/services/inventoryService';
+import { sparepartsService } from '../services/sparepartsService';
+
 import { useToast } from "@/hooks/use-toast";
 
 // Zod coerce ayuda a transformar los inputs de texto a números para la BD
@@ -28,6 +31,15 @@ const ProcessTicketSheet = ({ ticket, isOpen, setIsOpen, onUpdated }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
+  const [repuestosUsados, setRepuestosUsados] = useState([]);
+  const [busqueda, setBusqueda] = useState("");
+  const [resultados, setResultados] = useState([]);
+  const [isAddingSpare, setIsAddingSpare] = useState(false);
+
+  const [repuestoSeleccionado, setRepuestoSeleccionado] = useState(null); // El ítem en pausa
+  const [cantidadInput, setCantidadInput] = useState(1);
+  const [costoInput, setCostoInput] = useState(0);
+
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: { estado: "", diagnostico: "", trabajo_realizado: "", costo_mano_obra: 0, costo_repuestos: 0 },
@@ -36,6 +48,7 @@ const ProcessTicketSheet = ({ ticket, isOpen, setIsOpen, onUpdated }) => {
   // El Súper useEffect para pre-llenar los datos cuando se abre el panel
   useEffect(() => {
     if (ticket && isOpen) {
+      sparepartsService.getByOrden(ticket.id).then(setRepuestosUsados);
       form.setValue("estado", ticket.estado || "Pendiente");
       form.setValue("diagnostico", ticket.diagnostico || "");
       form.setValue("trabajo_realizado", ticket.trabajo_realizado || "");
@@ -46,6 +59,58 @@ const ProcessTicketSheet = ({ ticket, isOpen, setIsOpen, onUpdated }) => {
       setIsEditing(false);
     }
   }, [ticket, isOpen, form]);
+
+  useEffect(() => {
+    const total = repuestosUsados.reduce((acc, curr) => acc + (Number(curr.costo_unitario) * curr.cantidad), 0);
+    form.setValue("costo_repuestos", total);
+  }, [repuestosUsados, form]);
+
+  const buscarEnInventario = async (query) => {
+    setBusqueda(query);
+    if (query.length > 2) {
+      try {
+        const data = await inventoryService.getAll({ buscar: query, es_externo: false });
+        setResultados(data.filter(i => i.stock > 0));
+      } catch (error) {
+        console.error("Error buscando repuestos:", error);
+      }
+    } else {
+      setResultados([]);
+    }
+  };
+
+  const confirmarRepuesto = async () => {
+    if (!repuestoSeleccionado) return;
+    try {
+      setIsAddingSpare(true);
+      
+      // Enviamos el item, la cantidad y el costo al backend
+      await sparepartsService.agregarARepuesto(
+        ticket.id, 
+        repuestoSeleccionado.id, 
+        cantidadInput, 
+        costoInput
+      );
+      
+      const actualizados = await sparepartsService.getByOrden(ticket.id);
+      setRepuestosUsados(actualizados);
+      
+      // Limpiamos todo
+      setBusqueda("");
+      setResultados([]);
+      setRepuestoSeleccionado(null);
+      setCantidadInput(1);
+      setCostoInput(0);
+      
+      if (onUpdated) onUpdated(); 
+      toast({ title: "Repuesto añadido", description: "Stock descontado y costo sumado." });
+    } catch (error) {
+      toast({ title: "Error", description: error.message || "Error al agregar", variant: "destructive" });
+    } finally {
+      setIsAddingSpare(false);
+    }
+  };
+  
 
   const onSubmit = async (values) => {
     setIsSubmitting(true);
@@ -69,7 +134,7 @@ const ProcessTicketSheet = ({ ticket, isOpen, setIsOpen, onUpdated }) => {
       if (onUpdated) onUpdated();
       
     } catch (error) {
-      toast({ title: "Error", description: error, variant: "destructive" });
+      toast({ title: "Error", description: error.message || "Error al actualizar la orden", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -137,6 +202,103 @@ const ProcessTicketSheet = ({ ticket, isOpen, setIsOpen, onUpdated }) => {
                 </FormItem>
               )} />
 
+              {/* === NUEVA SECCIÓN: GESTIÓN DE REPUESTOS === */}
+              <div className="space-y-4 border-y border-zinc-200 py-6 my-4 bg-white p-4 rounded-md shadow-sm">
+                <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
+                  <Box className="w-4 h-4 text-blue-600" /> Repuestos y Suministros
+                </h3>
+
+                {isEditing && (
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
+                    <Input 
+                      placeholder="Buscar en bodega (SSD, RAM...)" 
+                      value={busqueda}
+                      onChange={(e) => buscarEnInventario(e.target.value)}
+                      className="pl-9 bg-white border-blue-200"
+                    />
+                    
+                    {/* Resultados del Buscador */}
+                    {!repuestoSeleccionado && resultados.length > 0 && (
+                      <div className="absolute z-20 w-full mt-1 bg-white border border-zinc-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        {resultados.map(item => (
+                          <div 
+                            key={item.id} 
+                            // 🔥 Aquí cambiamos la acción al hacer clic
+                            onClick={() => setRepuestoSeleccionado(item)}
+                            className="p-3 hover:bg-blue-50 cursor-pointer flex justify-between items-center border-b last:border-0"
+                          >
+                            <div className="text-xs">
+                              <p className="font-bold text-zinc-900">{item.nombre}</p>
+                              <p className="text-zinc-500">Stock actual: {item.stock}</p>
+                            </div>
+                            <Plus className="w-4 h-4 text-blue-600" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 🔥 EL MINI-FORMULARIO INTERMEDIO */}
+                    {repuestoSeleccionado && (
+                      <div className="absolute z-20 w-full mt-1 bg-blue-50 border border-blue-200 rounded-md shadow-lg p-3 space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="text-sm font-bold text-blue-900">{repuestoSeleccionado.nombre}</p>
+                            <p className="text-xs text-blue-700">Stock disponible: {repuestoSeleccionado.stock}</p>
+                          </div>
+                          <button type="button" onClick={() => setRepuestoSeleccionado(null)}>
+                            <X className="w-4 h-4 text-zinc-400 hover:text-red-500" />
+                          </button>
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <label className="text-[10px] font-semibold text-zinc-600 uppercase">Cant.</label>
+                            <Input 
+                              type="number" min="1" max={repuestoSeleccionado.stock}
+                              value={cantidadInput === 0 ? '' : cantidadInput}
+                              onChange={e => setCantidadInput(Number(e.target.value))} 
+                              className="h-8 text-sm bg-white border-blue-200"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <label className="text-[10px] font-semibold text-zinc-600 uppercase">Precio Unit. ($)</label>
+                            <Input 
+                              type="number" step="0.01" min="0"
+                              value={costoInput === 0 ? '' : costoInput}
+                              onChange={e => setCostoInput(Number(e.target.value))} 
+                              className="h-8 text-sm bg-white border-blue-200"
+                            />
+                          </div>
+                        </div>
+                        
+                        <Button 
+                          type="button" 
+                          onClick={confirmarRepuesto} 
+                          disabled={isAddingSpare}
+                          className="w-full h-8 bg-blue-600 hover:bg-blue-700 text-xs text-white shadow-sm"
+                        >
+                          {isAddingSpare ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar y Descontar Stock"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  {repuestosUsados.length === 0 ? (
+                    <p className="text-xs text-zinc-400 italic">No se han registrado repuestos.</p>
+                  ) : (
+                    repuestosUsados.map((rep) => (
+                      <div key={rep.id} className="flex justify-between items-center p-2 bg-slate-50 rounded-md border border-zinc-200 text-xs">
+                        <span className="font-medium text-zinc-700">{rep.inventario?.nombre} (x{rep.cantidad})</span>
+                        <span className="font-mono text-zinc-500">${(Number(rep.costo_unitario) * rep.cantidad).toFixed(2)}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
               <FormField control={form.control} name="diagnostico" render={({ field }) => (
                 <FormItem className="space-y-1.5">
                   <FormLabel className="text-sm font-semibold text-zinc-900">Diagnóstico Técnico</FormLabel>
@@ -177,10 +339,9 @@ const ProcessTicketSheet = ({ ticket, isOpen, setIsOpen, onUpdated }) => {
                     <FormControl>
                       <div className="relative">
                         <DollarSign className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
-                        <Input type="number" step="0.01" className={`pl-9 h-10 border-zinc-200 ${!isEditing ? "bg-zinc-100/50 text-zinc-700" : "bg-white focus:ring-1 focus:ring-blue-500"}`} {...field} readOnly={!isEditing} />
+                        <Input type="number" step="0.01" className="pl-9 h-10 border-zinc-200 bg-zinc-100/80 text-blue-700 font-bold" {...field} readOnly={true} />
                       </div>
                     </FormControl>
-                    <FormMessage />
                   </FormItem>
                 )} />
               </div>

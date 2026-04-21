@@ -1,5 +1,6 @@
 const maintenanceRepository = require('./maintenance.repository');
 const inventoryRepository = require('../inventory/inventory.repository');
+const sparepartsRepository = require('../spareparts/spareparts.repository');
 
 const registrarOrden = async (datosOrden) => {
   // Validaciones de negocio antes de tocar la base de datos
@@ -33,27 +34,36 @@ const registrarOrden = async (datosOrden) => {
 
 const listarOrdenes = async () => {
   const ordenes = await maintenanceRepository.obtenerOrdenes();
-  // Formateamos para el frontend
-  return ordenes.map(orden => ({
-    id: orden.id,
-    equipo_nombre: orden.inventario?.nombre || 'Equipo Desconocido',
-    codigo_equipo: orden.inventario?.codigo_barras || 'S/N',
-    tecnico: orden.perfiles_usuario?.nombre_completo || 'Sin asignar',
-    tipo: orden.tipo_mantenimiento,
-    estado: orden.estado,
-    prioridad: orden.prioridad,
-    motivo: orden.motivo,
-    fecha: new Date(orden.fecha_creacion).toLocaleDateString(),
+  return Promise.all(ordenes.map(async (orden) => {
+    // 2. Buscamos los repuestos vinculados a esta orden
+    const repuestos = await sparepartsRepository.obtenerRepuestosPorOrden(orden.id);
+    
+    // 3. Sumamos el costo total de los repuestos usados
+    const totalRepuestos = repuestos.reduce((sum, r) => sum + (Number(r.costo_unitario) * r.cantidad), 0);
 
-    item_id: orden.item_id, // Vital para saber a quién desbloquear
-    diagnostico: orden.diagnostico,
-    trabajo_realizado: orden.trabajo_realizado,
-    costo_mano_obra: orden.costo_mano_obra,
-    costo_repuestos: orden.costo_repuestos
-  }));
+  // Formateamos para el frontend
+    return {
+      id: orden.id,
+      equipo_nombre: orden.inventario?.nombre || 'Equipo Desconocido',
+      codigo_equipo: orden.inventario?.codigo_barras || 'S/N',
+      tecnico: orden.perfiles_usuario?.nombre_completo || 'Sin asignar',
+      tipo: orden.tipo_mantenimiento,
+      estado: orden.estado,
+      prioridad: orden.prioridad,
+      motivo: orden.motivo,
+      fecha: new Date(orden.fecha_creacion).toLocaleDateString(),
+
+      item_id: orden.item_id, // Vital para saber a quién desbloquear
+      diagnostico: orden.diagnostico,
+      trabajo_realizado: orden.trabajo_realizado,
+      costo_mano_obra: orden.costo_mano_obra,
+      costo_repuestos: totalRepuestos,
+      costo_total: totalRepuestos + (Number(orden.costo_mano_obra) || 0)
+    };
+   }));
 };
 
-const actualizarOrden = async (id, datosActualizados, item_id) => {
+const actualizarOrden = async (id, datosActualizados, item_id, usuario_id) => {
   if (!id) throw new Error('El ID de la orden es obligatorio');
   
   let cambiarEstadoEquipo = false;
@@ -61,14 +71,14 @@ const actualizarOrden = async (id, datosActualizados, item_id) => {
   // 🔥 Si el técnico lo marca como Reparado o Listo para Entrega
   if (['Reparado', 'Listo para Entrega', 'Finalizado'].includes(datosActualizados.estado)) {
     if (!datosActualizados.fecha_fin) datosActualizados.fecha_fin = new Date().toISOString();
-    liberarEquipo = true; 
+    cambiarEstadoEquipo = true; 
   }
 
   // Actualizamos la orden de trabajo
   const ordenActualizada = await maintenanceRepository.actualizarOrdenTrabajo(id, datosActualizados);
 
   // 2. Si ya terminó, liberamos el equipo en el Kardex
-  if (liberarEquipo && item_id) {
+  if (cambiarEstadoEquipo && item_id) {
     await inventoryRepository.actualizarItem(item_id, { estado_operativo: 'Operativo' });
     
     await inventoryRepository.registrarHistorial(

@@ -63,10 +63,11 @@ const actualizarOrden = async (req, res) => {
   try {
     const { id } = req.params;
     const datosActualizados = req.body;
-    // Extraemos el item_id que debe venir desde el frontend para saber a quién desbloquear
-    const { item_id } = req.body; 
 
-    const ordenActualizada = await maintenanceService.actualizarOrden(id, datosActualizados, item_id);
+    const { item_id } = req.body;
+    const usuario_id = req.usuario.id; 
+
+    const ordenActualizada = await maintenanceService.actualizarOrden(id, datosActualizados, item_id, usuario_id);
 
     res.status(200).json({
       mensaje: 'Orden actualizada correctamente',
