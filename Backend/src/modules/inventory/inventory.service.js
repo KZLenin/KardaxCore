@@ -2,61 +2,84 @@ const inventoryRepository = require('./inventory.repository');
 // const hardwareService = require('../hardware/services/cromePrinter'); // Lo usaremos después
 
 const registrarEntrada = async (datos) => {
+  // 1. Validaciones obligatorias
   if (!datos.sedeId || !datos.categoriaId || !datos.nombre) {
     throw new Error('Faltan datos obligatorios para registrar el ítem en el Kardex.');
   }
 
-  const serieLimpia = (!datos.serie_fabricante || datos.serie_fabricante.trim() === '' || datos.serie_fabricante === '0') 
+  const serieLimpia = (!datos.serieFabricante || datos.serieFabricante.trim() === '' || datos.serieFabricante === '0') 
     ? null 
-    : datos.serie_fabricante.trim();
+    : datos.serieFabricante.trim();
 
-  // Equipos externos
+  // 2. Evaluamos si es de Taller o Propio
   const esExterno = datos.es_externo === true || datos.es_externo === 'true';
-  const clienteFinal = esExterno ? datos.cliente_id : null;
-  const sucursalFinal = esExterno ? datos.sucursal_id : null;
+  const clienteFinal = esExterno ? datos.clienteId : null;
+  const sucursalFinal = esExterno ? datos.sucursalId : null;
   const proveedorFinal = esExterno ? null : datos.proveedorId;
 
-  // Si es externo forzamos a 1, si no, lo que traiga (o 1 si es Unidad)
-  let cantidadFinal = esExterno ? 1 : (Number(datos.cantidad_stock) || 0);
-  const unidadTexto = datos.unidad_medida ? datos.unidad_medida.toUpperCase() : '';
+  // 3. Atrapamos las cantidades que vienen del frontend (OJO: en camelCase)
+ const cantidadIngresada = Number(datos.cantidad_stock || datos.cantidadStock) || 1;
+  const unidadTexto = (datos.unidad_medida || datos.unidadMedida || '').toUpperCase();
 
-  if (unidadTexto === 'UNIDAD' || unidadTexto === 'U') {
-    cantidadFinal = 1; // Lo forzamos a 1
-  }
+  // 4. 🔥 LA MAGIA MULTIPLICADORA
+  const esUnidad = unidadTexto === 'UNIDAD' || unidadTexto === 'U';
   
-  const datosLimpios = {
-    ...datos,
-    nombre: datos.nombre.trim().toUpperCase(),
-    serie_fabricante: serieLimpia,
-    cantidad_stock: cantidadFinal,
-    proveedorId: proveedorFinal,
-    es_externo: esExterno,
-    cliente_id: clienteFinal,
-    sucursal_id: sucursalFinal,
-    notas_ingreso: esExterno ? datos.notas_ingreso : null
-  };
-  const nuevoItem = await inventoryRepository.crearItemKardex(datosLimpios);
-  const descripcionHistorial = esExterno
-    ? `Ingreso de equipo de CLIENTE a Taller. Notas al recibir: ${datos.notas_ingreso || 'Sin notas'}`
-    : `Ingreso inicial a BODEGA (Compra/Stock). Stock inicial: ${cantidadFinal} ${datos.unidad_medida}`;
+  // Si es Unidad y NO es de un cliente (porque los de cliente entran 1 a 1), multiplicamos
+  const copiasACrear = (esUnidad && !esExterno) ? cantidadIngresada : 1;
+  const stockPorFila = esUnidad ? 1 : cantidadIngresada;
 
-  await inventoryRepository.registrarHistorial(
-    nuevoItem.id,                 // ID del equipo
-    'INGRESO_SISTEMA',            // Tipo de Acción
-    descripcionHistorial,         // El mensaje dinámico
-  );
+  // 5. 🛡️ BLINDAJE ANTI-CRASH (Evitar duplicados de serie)
+  if (copiasACrear > 1 && serieLimpia !== null) {
+    throw new Error('No puedes clonar múltiples equipos a la vez si les pones un Número de Serie. Deja la serie en blanco o regístralos 1 por 1.');
+  }
 
-  await inventoryRepository.registrarMovimiento({
-    item_id: nuevoItem.id,
-    tipo_movimiento: 'ENTRADA',
-    cantidad: cantidadFinal,
-    sede_destino_id: datos.sedeId,
-    usuario_id: datos.creadoPor || null, // 🔥 Para saber quién lo metió
-    observaciones: esExterno ? 'Recepción de equipo de cliente' : 'Ingreso de inventario propio'
-  });
+  const itemsCreados = [];
 
+  // 6. 🔄 EL BUCLE CLONADOR
+  for (let i = 0; i < copiasACrear; i++) {
+    const datosLimpios = {
+      ...datos,
+      nombre: datos.nombre.trim().toUpperCase(),
+      serie_fabricante: serieLimpia,
+      cantidad_stock: stockPorFila, // Aquí lo pasamos a snake_case para la BD
+      unidad_medida: unidadTexto,
+      proveedorId: proveedorFinal,
+      es_externo: esExterno,
+      cliente_id: clienteFinal,
+      sucursal_id: sucursalFinal,
+      notas_ingreso: esExterno ? datos.notasIngreso : null
+    };
 
-  return nuevoItem;
+    // A. Nace el equipo en el inventario (El Trigger le da su código único)
+    const nuevoItem = await inventoryRepository.crearItemKardex(datosLimpios);
+
+    // B. Registramos el Historial
+    const descripcionHistorial = esExterno
+      ? `Ingreso de equipo de CLIENTE a Taller. Notas: ${datos.notasIngreso || 'Ninguna'}`
+      : `Ingreso inicial a BODEGA. Stock inicial: ${stockPorFila} ${unidadTexto}`;
+
+    await inventoryRepository.registrarHistorial(
+      nuevoItem.id,                 
+      'INGRESO_SISTEMA',            
+      descripcionHistorial,         
+      datos.creadoPor || 'Sistema' 
+    );
+
+    // C. Registramos el Movimiento Logístico
+    await inventoryRepository.registrarMovimiento({
+      item_id: nuevoItem.id,
+      tipo_movimiento: 'ENTRADA',
+      cantidad: stockPorFila,
+      sede_destino_id: datos.sedeId,
+      usuario_id: datos.creadoPor || null, 
+      observaciones: esExterno ? 'Recepción de equipo de cliente' : 'Ingreso de inventario propio'
+    });
+
+    itemsCreados.push(nuevoItem);
+  }
+
+  // 7. Devolvemos la lista de ítems creados
+  return itemsCreados;
 };
 
 const actualizarCategoria = async (id, datos) => {
@@ -116,7 +139,7 @@ const listarInventario = async (filtros) => {
     categoria: item.categorias?.nombre || 'Sin categoría',
     sede: item.sedes?.nombre || 'N/A',
     proveedor: item.es_externo 
-      ? `🏢 ${item.clientes_empresas?.nombre_comercial || 'Desconocido'} - Sede: ${item.clientes_sucursales?.nombre_sucursal || 'Matriz'}` 
+      ? `${item.clientes_empresas?.nombre_comercial || 'Desconocido'} - Sede: ${item.clientes_sucursales?.nombre_sucursal || 'Matriz'}` 
       : (item.proveedores?.nombre_empresa || 'N/A'),
     // Usamos los nombres exactos de tu SQL
     stock: item.cantidad_stock, 

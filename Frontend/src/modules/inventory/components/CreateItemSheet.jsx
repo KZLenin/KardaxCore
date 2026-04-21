@@ -64,16 +64,14 @@ const CreateItemSheet = ({ sedes = [], categorias = [], proveedores = [], client
   const watchCliente = form.watch("clienteId");
 
   useEffect(() => {
-  if (watchUnidad === 'Unidad' || watchUnidad === 'UNIDAD' || isExterno) {
-    form.setValue("cantidadStock", 1); // Forzamos el valor en el formulario
-  } 
   if (isExterno) {
-      form.setValue("proveedorId", ""); // Limpia proveedor por si acaso
+      form.setValue("cantidadStock", 1); 
+      form.setValue("proveedorId", ""); // Limpia proveedor
     } else {
       form.setValue("clienteId", "");
       form.setValue("sucursalId", "");
     }
-  }, [watchUnidad, isExterno, form]);
+  }, [isExterno, form]);
 
   // 3. LA FUNCIÓN DE GUARDADO (Misma lógica)
   const onSubmit = async (values) => {
@@ -264,7 +262,7 @@ const CreateItemSheet = ({ sedes = [], categorias = [], proveedores = [], client
               <FormField control={form.control} name="cantidadStock" render={({ field }) => {
                 // 🔥 3. LA MAGIA VISUAL: Evaluamos si está en unidad
                 const esUnidad = watchUnidad === 'UNIDAD';
-                const isBlocked = watchUnidad === 'UNIDAD' || isExterno;
+                const isBlocked =  isExterno;
                 return (
                   <FormItem className="space-y-1.5">
                     <FormLabel className="text-sm font-semibold text-zinc-900">Stock Inicial</FormLabel>
@@ -272,18 +270,23 @@ const CreateItemSheet = ({ sedes = [], categorias = [], proveedores = [], client
                       <Input
                         type="number"
                         min="1"
-                        className={`h-10 border-zinc-200 shadow-sm ${esUnidad || isBlocked ? "bg-zinc-100 text-zinc-500 cursor-not-allowed focus-visible:ring-0" : "focus:ring-1 focus:ring-blue-500 bg-white"}`}
+                        className={`h-10 border-zinc-200 shadow-sm ${ isBlocked ? "bg-zinc-100 text-zinc-500 cursor-not-allowed focus-visible:ring-0" : "focus:ring-1 focus:ring-blue-500 bg-white"}`}
                         {...field}
-                        readOnly={esUnidad || isBlocked} // Bloqueamos el input si es unidad o externo
-                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        value={field.value === 0 ? '' : field.value}
+                        readOnly={isBlocked} // Bloqueamos el input si es unidad o externo
+                        onChange={(e) => {
+                          const valor = e.target.value;
+                          
+                          field.onChange(valor === '' ? 0 : Number(valor));
+                        }}
                       />
                     </FormControl>
                     {esUnidad ? (
                       <FormDescription className="text-[10px] text-amber-600 font-medium leading-tight">
-                        Bloqueado a 1 para equipos individuales.
+                        Bloqueado a 1 para equipos externos.
                       </FormDescription>
                     ) : (
-                      <FormDescription className="text-xs text-zinc-500">Cantidad con la que entra.</FormDescription>
+                      <FormDescription className="text-xs text-zinc-500">{esUnidad ? "Se crearán etiquetas individuales." : "Cantidad total que ingresa."}</FormDescription>
                     )}
                     <FormMessage />
                   </FormItem>

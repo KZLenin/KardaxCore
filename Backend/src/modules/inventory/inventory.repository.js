@@ -12,6 +12,8 @@ const crearItemKardex = async (datosItem) => {
         serie_fabricante: datosItem.serie_fabricante,
         proveedor_id: datosItem.proveedorId || null,
         detalles: datosItem.detalles || {},
+        cantidad_stock: datosItem.cantidad_stock, 
+        unidad_medida: datosItem.unidad_medida,
         //Externo
         es_externo: datosItem.es_externo || false,
         cliente_id: datosItem.cliente_id || null,
@@ -236,7 +238,7 @@ const actualizarImagenUrl = async (id, imagenUrl) => {
 
 const registrarMovimiento = async (datosMovimiento) => {
   const { error } = await supabase
-    .from('movimiento_logistico') // ⚠️ Asegúrate que así se llame tu tabla exacta en BD
+    .from('movimientos_logisticos') // ⚠️ Asegúrate que así se llame tu tabla exacta en BD
     .insert([datosMovimiento]);
 
   if (error) {

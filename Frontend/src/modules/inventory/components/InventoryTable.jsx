@@ -309,9 +309,6 @@ const handleBulkPrint = async () => {
                   </span>
                 </TableCell>
                 
-                <TableCell className="font-medium text-zinc-900">
-                  {item.nombre}
-                </TableCell>
                 
                 <TableCell>
                   <span className="text-zinc-600 text-sm">{item.categoria}</span>

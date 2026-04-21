@@ -1,4 +1,5 @@
 const maintenanceRepository = require('./maintenance.repository');
+const inventoryRepository = require('../inventory/inventory.repository');
 
 const registrarOrden = async (datosOrden) => {
   // Validaciones de negocio antes de tocar la base de datos
@@ -9,11 +10,25 @@ const registrarOrden = async (datosOrden) => {
   // Asegurarnos de que inicie con estado Pendiente
   const nuevaOrden = {
     ...datosOrden,
-    estado: 'Pendiente',
+    estado: 'Ingresado', // Flujo: Ingresado -> En Diagnóstico -> Esperando Repuestos -> Listo
     fecha_creacion: new Date().toISOString()
   };
 
-  return await maintenanceRepository.crearOrdenTrabajo(nuevaOrden);
+  // 2. Creamos la orden en la BD
+  const ordenCreada = await maintenanceRepository.crearOrdenTrabajo(nuevaOrden);
+
+  // 3. Bloqueamos el equipo en el Kardex
+  await inventoryRepository.actualizarItem(datosOrden.item_id, { estado_operativo: 'En Mantenimiento' });
+  
+  // 4. Escribimos en el historial del equipo
+  await inventoryRepository.registrarHistorial(
+    datosOrden.item_id, 
+    'INGRESO_TALLER', 
+    `Ingresó a taller (${datosOrden.tipo_mantenimiento}). Motivo: ${datosOrden.motivo}`,
+    datosOrden.creado_por || 'Sistema'
+  );
+
+  return ordenCreada;
 };
 
 const listarOrdenes = async () => {
@@ -43,23 +58,25 @@ const actualizarOrden = async (id, datosActualizados, item_id) => {
   
   let cambiarEstadoEquipo = false;
 
-  // Si envían que está finalizado, le ponemos fecha de fin automática
-  if (datosActualizados.estado === 'Finalizado' && !datosActualizados.fecha_fin) {
-    datosActualizados.fecha_fin = new Date().toISOString();
-    cambiarEstadoEquipo = true; // 🔥 Marcamos la bandera de que el equipo está listo
+  // 🔥 Si el técnico lo marca como Reparado o Listo para Entrega
+  if (['Reparado', 'Listo para Entrega', 'Finalizado'].includes(datosActualizados.estado)) {
+    if (!datosActualizados.fecha_fin) datosActualizados.fecha_fin = new Date().toISOString();
+    liberarEquipo = true; 
   }
 
   // Actualizamos la orden de trabajo
-  const ordenActualizada = await maintenanceRepository.actualizarOrdenTrabajo(id, datosActualizados, item_id);
+  const ordenActualizada = await maintenanceRepository.actualizarOrdenTrabajo(id, datosActualizados);
 
-  // 🔥 NUEVO: Si la orden finalizó, liberamos el equipo en el inventario
-  if (cambiarEstadoEquipo && item_id) {
-    // Nota: Necesitarás agregar esta función a tu maintenance.repository.js
-    // Es idéntica a la que creaste en movements.repository.js
-    await maintenanceRepository.actualizarEstadoEquipo(item_id, 'Operativo');
+  // 2. Si ya terminó, liberamos el equipo en el Kardex
+  if (liberarEquipo && item_id) {
+    await inventoryRepository.actualizarItem(item_id, { estado_operativo: 'Operativo' });
     
-    // Opcional pero recomendado: Registrar en el historial que salió de mantenimiento
-    await maintenanceRepository.registrarHistorialLiberacion(item_id, 'LIBERACION_TALLER', 'Equipo reparado y devuelto a estado Operativo.');
+    await inventoryRepository.registrarHistorial(
+      item_id, 
+      'SALIDA_TALLER', 
+      `Reparación finalizada. Diagnóstico: ${datosActualizados.diagnostico || 'Sin detalles'}. Trabajo: ${datosActualizados.trabajo_realizado || 'N/A'}.`,
+      usuario_id || 'Sistema'
+    );
   }
 
   return ordenActualizada;
