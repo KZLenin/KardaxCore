@@ -36,7 +36,7 @@ const ProcessTicketSheet = ({ ticket, isOpen, setIsOpen, onUpdated }) => {
   const [resultados, setResultados] = useState([]);
   const [isAddingSpare, setIsAddingSpare] = useState(false);
 
-  const [repuestoSeleccionado, setRepuestoSeleccionado] = useState(null); // El ítem en pausa
+  const [repuestoSeleccionado, setRepuestoSeleccionado] = useState(null); 
   const [cantidadInput, setCantidadInput] = useState(1);
   const [costoInput, setCostoInput] = useState(0);
 
@@ -45,7 +45,7 @@ const ProcessTicketSheet = ({ ticket, isOpen, setIsOpen, onUpdated }) => {
     defaultValues: { estado: "", diagnostico: "", trabajo_realizado: "", costo_mano_obra: 0, costo_repuestos: 0 },
   });
 
-  // El Súper useEffect para pre-llenar los datos cuando se abre el panel
+  // Pre-llenar los datos cuando se abre el panel
   useEffect(() => {
     if (ticket && isOpen) {
       sparepartsService.getByOrden(ticket.id).then(setRepuestosUsados);
@@ -65,6 +65,7 @@ const ProcessTicketSheet = ({ ticket, isOpen, setIsOpen, onUpdated }) => {
     form.setValue("costo_repuestos", total);
   }, [repuestosUsados, form]);
 
+  // Función principal de búsqueda
   const buscarEnInventario = async (query) => {
     setBusqueda(query);
     if (query.length > 2) {
@@ -79,12 +80,19 @@ const ProcessTicketSheet = ({ ticket, isOpen, setIsOpen, onUpdated }) => {
     }
   };
 
+  // 🔥 EL FRENO DE MANO PARA LA PISTOLA ESCÁNER
+  const handleScanRepuesto = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault(); // 🛑 Evita que el formulario gigante se envíe
+      buscarEnInventario(e.target.value); // Dispara tu búsqueda de forma segura
+    }
+  };
+
   const confirmarRepuesto = async () => {
     if (!repuestoSeleccionado) return;
     try {
       setIsAddingSpare(true);
       
-      // Enviamos el item, la cantidad y el costo al backend
       await sparepartsService.agregarARepuesto(
         ticket.id, 
         repuestoSeleccionado.id, 
@@ -95,7 +103,6 @@ const ProcessTicketSheet = ({ ticket, isOpen, setIsOpen, onUpdated }) => {
       const actualizados = await sparepartsService.getByOrden(ticket.id);
       setRepuestosUsados(actualizados);
       
-      // Limpiamos todo
       setBusqueda("");
       setResultados([]);
       setRepuestoSeleccionado(null);
@@ -111,7 +118,6 @@ const ProcessTicketSheet = ({ ticket, isOpen, setIsOpen, onUpdated }) => {
     }
   };
   
-
   const onSubmit = async (values) => {
     setIsSubmitting(true);
     try {
@@ -121,12 +127,10 @@ const ProcessTicketSheet = ({ ticket, isOpen, setIsOpen, onUpdated }) => {
         trabajo_realizado: values.trabajo_realizado,
         costo_mano_obra: values.costo_mano_obra,
         costo_repuestos: values.costo_repuestos,
-        // OJO AQUÍ: Mandamos el item_id para que el backend sepa a quién desbloquear
         item_id: ticket.item_id 
       };
 
       await maintenanceService.actualizarOrden(ticket.id, payload);
-      
       toast({ title: "¡Ticket Actualizado!", description: "La orden se procesó correctamente." });
       
       setIsEditing(false);
@@ -163,7 +167,7 @@ const ProcessTicketSheet = ({ ticket, isOpen, setIsOpen, onUpdated }) => {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {/* SECCIÓN SOLO LECTURA: Lo que reportó el cliente/creador */}
+          {/* SECCIÓN SOLO LECTURA */}
           <div className="p-6 bg-zinc-100/50 border-b border-zinc-200 space-y-3">
              <h3 className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
                 <Lock className="w-3 h-3" /> Reporte Inicial
@@ -202,7 +206,7 @@ const ProcessTicketSheet = ({ ticket, isOpen, setIsOpen, onUpdated }) => {
                 </FormItem>
               )} />
 
-              {/* === NUEVA SECCIÓN: GESTIÓN DE REPUESTOS === */}
+              {/* === SECCIÓN DE REPUESTOS === */}
               <div className="space-y-4 border-y border-zinc-200 py-6 my-4 bg-white p-4 rounded-md shadow-sm">
                 <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
                   <Box className="w-4 h-4 text-blue-600" /> Repuestos y Suministros
@@ -212,9 +216,10 @@ const ProcessTicketSheet = ({ ticket, isOpen, setIsOpen, onUpdated }) => {
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
                     <Input 
-                      placeholder="Buscar en bodega (SSD, RAM...)" 
+                      placeholder="Escanea el código o busca repuesto..." 
+                      onKeyDown={handleScanRepuesto} // 🔥 Aquí conectamos la pistola
                       value={busqueda}
-                      onChange={(e) => buscarEnInventario(e.target.value)}
+                      onChange={(e) => buscarEnInventario(e.target.value)} // 🔥 Mantiene el filtrado por teclado
                       className="pl-9 bg-white border-blue-200"
                     />
                     
@@ -224,7 +229,6 @@ const ProcessTicketSheet = ({ ticket, isOpen, setIsOpen, onUpdated }) => {
                         {resultados.map(item => (
                           <div 
                             key={item.id} 
-                            // 🔥 Aquí cambiamos la acción al hacer clic
                             onClick={() => setRepuestoSeleccionado(item)}
                             className="p-3 hover:bg-blue-50 cursor-pointer flex justify-between items-center border-b last:border-0"
                           >
@@ -238,7 +242,7 @@ const ProcessTicketSheet = ({ ticket, isOpen, setIsOpen, onUpdated }) => {
                       </div>
                     )}
 
-                    {/* 🔥 EL MINI-FORMULARIO INTERMEDIO */}
+                    {/* Mini-Formulario Intermedio */}
                     {repuestoSeleccionado && (
                       <div className="absolute z-20 w-full mt-1 bg-blue-50 border border-blue-200 rounded-md shadow-lg p-3 space-y-3">
                         <div className="flex justify-between items-start">
