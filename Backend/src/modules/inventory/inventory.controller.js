@@ -56,7 +56,9 @@ const getInventario = async (req, res) => {
       sedeId: req.query.sedeId,
       proveedorId: req.query.proveedorId,
       buscar: req.query.buscar,
-      es_externo: req.query.es_externo
+      es_externo: req.query.es_externo,
+      sortBy: req.query.sortBy,
+      sortOrder: req.query.sortOrder
     };
 
     const inventario = await inventoryService.listarInventario(filtros);

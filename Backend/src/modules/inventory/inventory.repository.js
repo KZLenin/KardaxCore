@@ -73,9 +73,12 @@ const obtenerInventario = async (filtros) => {
 
   // 2. Filtros Dinámicos
   if (filtros.categoriaId) query = query.eq('cat_id', filtros.categoriaId);
-  if (filtros.sedeId) query = query.eq('sede_id', filtros.sede_id);
-  if (filtros.proveedorId) query = query.eq('prov_id', filtros.proveedorId);
-
+  if (filtros.sedeId && filtros.sedeId !== 'todas') {
+    query = query.eq('sede_id', filtros.sedeId);
+  } 
+  if (filtros.proveedorId && filtros.proveedorId !== 'todos') {
+    query = query.eq('proveedor_id', filtros.proveedorId);
+  }
   if (filtros.es_externo !== undefined) {
     // Como llega como string ('true' o 'false') desde la web, lo pasamos a booleano real
     const esExternoBool = filtros.es_externo === 'true'; 
@@ -89,8 +92,19 @@ const obtenerInventario = async (filtros) => {
     );
   }
 
-  // 3. Ordenamiento Alfabético (Requerido)
-  query = query.order('nombre', { ascending: true });
+  
+
+  const columnaFiltro = filtros.sortBy || 'recientes'; 
+  const esAscendente = filtros.sortOrder === 'asc'; 
+
+  if (columnaFiltro === 'stock') {
+    query = query.order('cantidad_stock', { ascending: esAscendente });
+  } else if (columnaFiltro === 'nombre') {
+    query = query.order('nombre', { ascending: esAscendente });
+  } else {
+    // Ordenamos por fecha de creación (los recién añadidos primero si es 'desc')
+    query = query.order('created_at', { ascending: esAscendente });
+  }
 
   const { data, error } = await query;
 

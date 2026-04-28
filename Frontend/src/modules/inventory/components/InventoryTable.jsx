@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
-import { Search, Plus, Loader2, PackageX, FilterX, FileSpreadsheet, MapPin, Printer } from "lucide-react";
+import { Search, Plus, Loader2, PackageX, FilterX, FileSpreadsheet, MapPin, Printer, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 
 
 import { inventoryService } from '../services/inventoryService';
@@ -33,6 +33,9 @@ const InventoryView = () => {
     buscar: '',
     categoriaId: 'todas',
     tipoVista: 'todas',
+    sedeId: 'todas',
+    proveedorId: 'todos',
+    ordenarPor: 'recientes_desc',
   });
 
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
@@ -67,9 +70,16 @@ const InventoryView = () => {
         const params = {};
         if (filtros.buscar) params.buscar = filtros.buscar;
         if (filtros.categoriaId !== 'todas') params.categoriaId = filtros.categoriaId;
-
+        if (filtros.sedeId !== 'todas') params.sedeId = filtros.sedeId;
+        if (filtros.proveedorId !== 'todos') params.proveedorId = filtros.proveedorId;
         if (filtros.tipoVista === 'internos') params.es_externo = false;
         if (filtros.tipoVista === 'externos') params.es_externo = true;
+
+        if (filtros.ordenarPor) {
+          const [columna, direccion] = filtros.ordenarPor.split('_');
+          params.sortBy = columna;
+          params.sortOrder = direccion;
+        }
 
         const data = await inventoryService.getAll(params);
         setItems(data);
@@ -103,8 +113,46 @@ const InventoryView = () => {
     }
   };
 
+  // Función para ordenar al hacer clic en las cabeceras
+  const handleSort = (columna) => {
+    const [currentCol, currentDir] = filtros.ordenarPor.split('_');
+    
+    let newDir = 'asc';
+    if (currentCol === columna) {
+      // Si ya estaba en esta columna, invertimos la dirección
+      newDir = currentDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      // Si es una columna nueva, por defecto las de texto van A-Z y las numéricas mayor-menor
+      newDir = (columna === 'stock' || columna === 'recientes') ? 'desc' : 'asc';
+    }
+    
+    setFiltros({ ...filtros, ordenarPor: `${columna}_${newDir}` });
+  };
+
+  // Componente pequeñito para pintar las cabeceras dinámicas
+  const SortableHead = ({ label, columna, align = "left" }) => {
+    const [currentCol, currentDir] = filtros.ordenarPor.split('_');
+    const isActive = currentCol === columna;
+    
+    return (
+      <TableHead 
+        className={`font-semibold text-zinc-900 cursor-pointer hover:bg-zinc-100 transition-colors select-none text-${align}`}
+        onClick={() => handleSort(columna)}
+      >
+        <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
+          {label}
+          {isActive ? (
+            currentDir === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-blue-600" /> : <ArrowDown className="w-3.5 h-3.5 text-blue-600" />
+          ) : (
+            <ArrowUpDown className="w-3.5 h-3.5 text-zinc-300 opacity-50" />
+          )}
+        </div>
+      </TableHead>
+    );
+  };
+
   const limpiarFiltros = () => {
-    setFiltros({ buscar: '', categoriaId: 'todas', tipoVista: 'todas' });
+    setFiltros({ buscar: '', categoriaId: 'todas', tipoVista: 'todas', sedeId: 'todas', proveedorId: 'todos', ordenarPor: 'recientes_desc' });
   };
 
   const categoriasPrincipales = categorias.filter(c => !c.categoria_padre_id);
@@ -204,7 +252,42 @@ const handleBulkPrint = async () => {
           </SelectContent>
         </Select>
 
-        {(filtros.buscar !== '' || filtros.categoriaId !== 'todas') && (
+        <Select 
+          value={filtros.sedeId} 
+          onValueChange={(value) => setFiltros({ ...filtros, sedeId: value })}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Bodega / Sede" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas" className="font-bold text-blue-600">Todas las Bodegas</SelectItem>
+            {sedes.map(sede => (
+              <SelectItem key={sede.id} value={sede.id.toString()}>
+                {sede.nombre}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        
+        <Select 
+          value={filtros.proveedorId} 
+          onValueChange={(value) => setFiltros({ ...filtros, proveedorId: value })}
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Proveedor" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos" className="font-bold text-blue-600">Todos los Proveedores</SelectItem>
+            {proveedores.map(prov => (
+              <SelectItem key={prov.id} value={prov.id.toString()}>
+                {prov.nombre_empresa}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {(filtros.buscar !== '' || filtros.categoriaId !== 'todas' || filtros.sedeId !== 'todas' || filtros.proveedorId !== 'todos') && (
           <Button variant="ghost" onClick={limpiarFiltros} className="text-zinc-500">
             <FilterX className="w-4 h-4 mr-2" /> Limpiar
           </Button>
@@ -268,10 +351,10 @@ const handleBulkPrint = async () => {
                   />
                 </TableHead>
                 <TableHead className="w-[150px] font-semibold text-zinc-900">Código/Barras</TableHead>
-                <TableHead className="font-semibold text-zinc-900">Nombre del Artículo</TableHead>
+                <SortableHead label="Nombre del Artículo" columna="nombre" />
                 <TableHead className="font-semibold text-zinc-900">Categoría</TableHead>
                 <TableHead className="font-semibold text-zinc-900">Ubicación</TableHead>
-                <TableHead className="text-right font-semibold text-zinc-900">Stock Actual</TableHead>
+                <SortableHead label="Stock Actual" columna="stock" align="right" />
                 <TableHead className="text-center font-semibold text-zinc-900">Estado Operativo</TableHead>
                 <TableHead className="text-right font-semibold text-zinc-900">Acciones</TableHead>
               </TableRow>
