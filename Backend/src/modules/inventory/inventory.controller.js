@@ -227,11 +227,44 @@ const subirImagen = async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 };
+const exportarInventarioExcel = async (req, res) => {
+  try {
+    // 🔥 AHORA TODO VIENE EN EL BODY (Porque es una petición POST)
+    // Extraemos las columnas por un lado, y el resto de filtros (sedes, fechas, estados) los agrupamos
+    const { columnas, ...filtros } = req.body; 
+    
+    // Si no manda columnas (por si acaso), le mandamos un par por defecto
+    const columnasSeleccionadas = (columnas && columnas.length > 0) ? columnas : ['codigo', 'nombre', 'stock', 'estado'];
+
+    // Mandamos los filtros directos al servicio
+    const excelBuffer = await inventoryService.exportarExcel(filtros, columnasSeleccionadas);
+
+    // Configuramos las cabeceras para que el navegador sepa que es un archivo descargable
+    res.setHeader('Content-Disposition', 'attachment; filename="Reporte_Kardex.xlsx"');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    
+    res.send(excelBuffer);
+  } catch (error) {
+    console.error('🚨 ERROR AL EXPORTAR EXCEL:', error);
+    res.status(500).json({ error: 'Error al generar el archivo Excel' });
+  }
+};
+
+const importarMasivo = async (req, res) => {
+  try {
+    const { items } = req.body;
+    const resultado = await inventoryService.importarMasivo(items);
+    res.status(201).json({ mensaje: 'Carga masiva exitosa', data: resultado });
+  } catch (error) {
+    console.error('🚨 ERROR EN CARGA MASIVA:', error);
+    res.status(400).json({ error: error.message });
+  }
+};
 
 
 module.exports = {
   registrarEntrada, crearCategoria, registrarProveedor, subirImagen,
   getCategorias, getProveedores, getInventario, getHistorial, getSedes,
   actualizarEquipo, actualizarCategoria, actualizarProveedor,
-  descargarEtiquetas, descargarEtiquetasMasivas,
+  descargarEtiquetas, descargarEtiquetasMasivas, exportarInventarioExcel, importarMasivo
 };

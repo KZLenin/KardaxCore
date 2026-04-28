@@ -57,9 +57,8 @@ const crearProveedor = async (proveedor) => {
   return data;
 };
 
-const obtenerInventario = async (filtros) => {
-  // 1. Consulta base con Joins (Relaciones)
-  // Nota: Asegúrate de que los nombres de las tablas coincidan (categorias, sedes, proveedores)
+const obtenerInventario = async (filtros = {}) => {
+  // 1. Consulta base con Joins
   let query = supabase
     .from('inventario')
     .select(`
@@ -71,29 +70,56 @@ const obtenerInventario = async (filtros) => {
       clientes_sucursales (nombre_sucursal)
     `);
 
-  // 2. Filtros Dinámicos
-  if (filtros.categoriaId) query = query.eq('cat_id', filtros.categoriaId);
-  if (filtros.sedeId && filtros.sedeId !== 'todas') {
-    query = query.eq('sede_id', filtros.sedeId);
-  } 
-  if (filtros.proveedorId && filtros.proveedorId !== 'todos') {
-    query = query.eq('proveedor_id', filtros.proveedorId);
+  // --- FILTROS DINÁMICOS AVANZADOS ---
+
+  // 1. Categorías (Soporta uno o varios IDs)
+  if (filtros.categoriaId) {
+    const cats = Array.isArray(filtros.categoriaId) ? filtros.categoriaId : [filtros.categoriaId];
+    if (cats.length > 0 && !cats.includes('todas')) query = query.in('cat_id', cats);
   }
-  if (filtros.es_externo !== undefined) {
-    // Como llega como string ('true' o 'false') desde la web, lo pasamos a booleano real
-    const esExternoBool = filtros.es_externo === 'true'; 
+
+  // 2. Sedes (Soporta uno o varios IDs)
+  if (filtros.sedeId) {
+    const sedes = Array.isArray(filtros.sedeId) ? filtros.sedeId : [filtros.sedeId];
+    if (sedes.length > 0 && !sedes.includes('todas')) query = query.in('sede_id', sedes);
+  }
+
+  // 3. Proveedores (Soporta uno o varios IDs)
+  if (filtros.proveedorId) {
+    const provs = Array.isArray(filtros.proveedorId) ? filtros.proveedorId : [filtros.proveedorId];
+    if (provs.length > 0 && !provs.includes('todos')) query = query.in('proveedor_id', provs);
+  }
+
+  // 4. Estados Operativos (Ej: ['Operativo', 'En Reparación'])
+  if (filtros.estados && filtros.estados.length > 0) {
+    query = query.in('estado_operativo', filtros.estados);
+  }
+
+  // 5. Filtro de Disponibilidad de Stock
+  if (filtros.stockStatus === 'con_stock') {
+    query = query.gt('cantidad_stock', 0);
+  } else if (filtros.stockStatus === 'sin_stock') {
+    query = query.eq('cantidad_stock', 0);
+  }
+
+  // 6. Rango de Fechas de Ingreso
+  if (filtros.fechaInicio) query = query.gte('created_at', filtros.fechaInicio);
+  if (filtros.fechaFin) query = query.lte('created_at', filtros.fechaFin);
+
+  // 7. Tipo de ítem (Interno vs Externo)
+  if (filtros.es_externo !== undefined && filtros.es_externo !== 'todas') {
+    const esExternoBool = filtros.es_externo === 'true' || filtros.es_externo === true; 
     query = query.eq('es_externo', esExternoBool);
   }
   
-  // Filtro de búsqueda por nombre (opcional pero muy útil)
+  // 8. Búsqueda por texto
   if (filtros.buscar) {
     query = query.or(
       `nombre.ilike.%${filtros.buscar}%,codigo_barras.ilike.%${filtros.buscar}%,serie_fabricante.ilike.%${filtros.buscar}%`
     );
   }
 
-  
-
+  // --- ORDENAMIENTO ---
   const columnaFiltro = filtros.sortBy || 'recientes'; 
   const esAscendente = filtros.sortOrder === 'asc'; 
 
@@ -102,12 +128,10 @@ const obtenerInventario = async (filtros) => {
   } else if (columnaFiltro === 'nombre') {
     query = query.order('nombre', { ascending: esAscendente });
   } else {
-    // Ordenamos por fecha de creación (los recién añadidos primero si es 'desc')
     query = query.order('created_at', { ascending: esAscendente });
   }
 
   const { data, error } = await query;
-
   if (error) throw new Error(`Error al obtener el Kardex: ${error.message}`);
   return data;
 };

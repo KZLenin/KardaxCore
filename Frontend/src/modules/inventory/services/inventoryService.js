@@ -116,43 +116,37 @@ export const inventoryService = {
     }
   },
 
-  prepararCargaMasiva: async (datosExcel, diccionarios) => {
-    const { sedes, categorias } = diccionarios;
+  // 🔥 LÓGICA DE IMPORTACIÓN MASIVA RECUPERADA
+  prepararCargaMasiva: async (datosPrevia, catalogos) => {
+    const { sedes, categorias } = catalogos;
+    
+    return datosPrevia.map(item => {
+      // Buscamos si el texto del Excel coincide con la base de datos (ignorando mayúsculas)
+      const sedeEncontrada = sedes.find(s => s.nombre.toLowerCase() === item.sedeNombre?.toLowerCase());
+      const catEncontrada = categorias.find(c => c.nombre.toLowerCase() === item.categoriaNombre?.toLowerCase());
 
-    return datosExcel.map((fila, index) => {
-      // 🔍 Buscar ID de la Sede por nombre
-      const sedeEncontrada = sedes.find(
-        s => s.nombre.toLowerCase() === String(fila.sede).toLowerCase()
-      );
-
-      // 🔍 Buscar ID de la Categoría por nombre
-      const catEncontrada = categorias.find(
-        c => c.nombre.toLowerCase() === String(fila.categoria).toLowerCase()
-      );
-
-      // Validamos si algo falta para avisar al usuario
-      if (!sedeEncontrada || !catEncontrada) {
-        throw new Error(
-          `Error en fila ${index + 1}: No se encontró la sede "${fila.sede}" o la categoría "${fila.categoria}".`
-        );
+      if (!sedeEncontrada) {
+        throw new Error(`La sede "${item.sedeNombre}" del equipo "${item.nombre}" no existe en el sistema.`);
       }
 
+      // Devolvemos el objeto tal cual lo espera tu base de datos
       return {
-        nombre: fila.nombre.trim().toUpperCase(),
-        codigo_barras: String(fila.codigo || ''),
-        serie_fabricante: String(fila.serie || ''),
-        cantidad_stock: Number(fila.cantidad || 0),
+        nombre: item.nombre,
+        codigo_barras: item.codigo || null,
+        serie_fabricante: item.serie || null,
+        cantidad_stock: item.cantidad || 1,
         sede_id: sedeEncontrada.id,
-        cat_id: catEncontrada.id,
-        detalles: { importado: true, fecha: new Date().toISOString() }
+        cat_id: catEncontrada ? catEncontrada.id : null,
+        unidad_medida: 'UNIDAD', // Por defecto para masivos
+        es_externo: false
       };
     });
   },
 
   importarMasivo: async (items) => {
-    // Aquí llamas a tu API de backend (la ruta que definimos antes)
-    const { data } = await httpClient.post('/inventory/bulk', items);
-    return data;
+    // Usamos post para enviar el array gigante
+    const response = await httpClient.post('/inventory/importar-masivo', { items });
+    return response.data;
   },
 
   getSedes: async () => {
@@ -175,4 +169,12 @@ imprimirEtiquetasMasivas: async (idsArray) => {
     throw error.response?.data?.error || 'Error al descargar las etiquetas';
   }
 },
+
+exportarExcel: async (payload) => {
+    const response = await httpClient.post('/inventory/exportar', payload, {
+      responseType: 'blob' 
+    });
+    
+    return response.data;
+  },
 };

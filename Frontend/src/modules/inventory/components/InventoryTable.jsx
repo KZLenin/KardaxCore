@@ -4,13 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
-import { Search, Plus, Loader2, PackageX, FilterX, FileSpreadsheet, MapPin, Printer, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Search, Plus, Loader2, PackageX, FilterX, FileSpreadsheet, MapPin, Printer, ArrowUp, ArrowDown, ArrowUpDown, Download } from "lucide-react";
 
 
 import { inventoryService } from '../services/inventoryService';
 import CreateItemSheet from './CreateItemSheet';
 import EditItemSheet from './EditItemSheet';
 import BulkImportSheet from './BulkImportSheet';
+import ExportInventorySheet from './ExportInventorySheet'
 
 const InventoryView = () => {
   const [items, setItems] = useState([]);
@@ -28,6 +29,8 @@ const InventoryView = () => {
 
   const [selectedItems, setSelectedItems] = useState([]); // Estado para los checkboxes
   const [isPrinting, setIsPrinting] = useState(false); // Para el loading del botón
+  const [isExportSheetOpen, setIsExportSheetOpen] = useState(false);
+
   // Estado para los filtros activos
   const [filtros, setFiltros] = useState({
     buscar: '',
@@ -294,13 +297,22 @@ const handleBulkPrint = async () => {
         )}
 
         <Button 
-                variant="outline" 
-                onClick={() => setIsBulkImportOpen(true)}
-                className="border-green-600 text-green-600 hover:bg-green-50 hover:text-green-700"
-            >
-                <FileSpreadsheet className="w-4 h-4 mr-2" />
-                Importar
-            </Button>
+            variant="outline" 
+            onClick={() => setIsBulkImportOpen(true)}
+            className="border-green-600 text-green-600 hover:bg-green-50 hover:text-green-700"
+        >
+            <FileSpreadsheet className="w-4 h-4 mr-2" />
+            Importar
+        </Button>
+
+        <Button 
+          variant="outline" 
+          onClick={() => setIsExportSheetOpen(true)}
+          className="border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Exportar
+        </Button>
 
         {selectedItems.length > 0 && (
           <Button 
@@ -324,7 +336,13 @@ const handleBulkPrint = async () => {
         />  
       </div>
 
-      
+      <ExportInventorySheet 
+        isOpen={isExportSheetOpen}
+        setIsOpen={setIsExportSheetOpen}
+        categorias={categorias}
+        sedes={sedes}
+        proveedores={proveedores}
+      />
 
       {/* TABLA DE RESULTADOS */}
       <div className="border rounded-md bg-white shadow-sm overflow-hidden">
@@ -442,6 +460,8 @@ const handleBulkPrint = async () => {
       <BulkImportSheet 
         isOpen={isBulkImportOpen}
         setIsOpen={setIsBulkImportOpen}
+        categorias={categorias} 
+        sedes={sedes}
         onImportSuccess={() => setFiltros({ ...filtros })} 
       />
     </div>

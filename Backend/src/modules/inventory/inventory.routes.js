@@ -18,6 +18,8 @@ router.post('/categorias', protegerRuta, soloRol('ADMIN'), inventoryController.c
 router.post('/proveedores', protegerRuta, inventoryController.registrarProveedor);
 router.post('/etiquetas/masivo', protegerRuta, inventoryController.descargarEtiquetasMasivas);
 router.post('/:id/imagen', protegerRuta, upload.single('imagen'), inventoryController.subirImagen);
+router.post('/exportar', protegerRuta, inventoryController.exportarInventarioExcel);
+router.post('/importar-masivo', protegerRuta, inventoryController.importarMasivo);
 
 router.get('/categorias', protegerRuta, inventoryController.getCategorias);
 router.get('/proveedores', protegerRuta, inventoryController.getProveedores);

@@ -1,5 +1,5 @@
 const inventoryRepository = require('./inventory.repository');
-// const hardwareService = require('../hardware/services/cromePrinter'); // Lo usaremos después
+const { generarExcelGenerico } = require('../../utils/excelGenerator');
 
 const registrarEntrada = async (datos) => {
   // 1. Validaciones obligatorias
@@ -227,8 +227,51 @@ const subirImagenEquipo = async (itemId, file) => {
   return urlPublica; // Devolvemos el link al Frontend
 };
 
+const exportarExcel = async (filtros, columnasSeleccionadas) => {
+  // 1. Obtenemos la data usando el repositorio avanzado que acabamos de mejorar
+  const itemsBrutos = await inventoryRepository.obtenerInventario(filtros);
+
+  // 2. Mapeamos los datos para el reporte
+  const dataFormateada = itemsBrutos.map(item => ({
+    codigo: item.codigo_barras || item.serie_fabricante || 'S/N',
+    nombre: item.nombre,
+    categoria: item.categorias?.nombre || 'Sin categoría',
+    sede: item.sedes?.nombre || 'N/A',
+    stock: item.cantidad_stock,
+    unidad: item.unidad_medida,
+    estado: item.estado_operativo || 'Operativo',
+    proveedor: item.es_externo 
+      ? `EXTERNO - ${item.clientes_empresas?.nombre_comercial || 'S/N'}` 
+      : (item.proveedores?.nombre_empresa || 'PROPIO'),
+    fecha: new Date(item.created_at).toLocaleDateString('es-ES')
+  }));
+
+  // 3. Diccionario de configuración de columnas para el motor ExcelJS
+  const configMaster = {
+    codigo: { header: 'CÓDIGO/SERIE', key: 'codigo', width: 20 },
+    nombre: { header: 'ARTÍCULO', key: 'nombre', width: 40 },
+    categoria: { header: 'CATEGORÍA', key: 'categoria', width: 25 },
+    sede: { header: 'UBICACIÓN', key: 'sede', width: 25 },
+    stock: { header: 'STOCK', key: 'stock', width: 10 },
+    unidad: { header: 'UNIDAD', key: 'unidad', width: 10 },
+    estado: { header: 'ESTADO', key: 'estado', width: 20 },
+    proveedor: { header: 'ORIGEN', key: 'proveedor', width: 30 },
+    fecha: { header: 'FECHA REG.', key: 'fecha', width: 15 }
+  };
+
+  const columnasFinales = columnasSeleccionadas.map(col => configMaster[col]);
+
+  // 4. Generamos el buffer usando el utilitario genérico
+  return await generarExcelGenerico(dataFormateada, columnasFinales, 'Reporte_Kardex');
+};
+const importarMasivo = async (items) => {
+  if (!items || items.length === 0) throw new Error("No hay equipos para importar.");
+  // Llamamos a la función que ya tenías viva en el repository
+  return await inventoryRepository.importarItemsMasivo(items);
+};
 module.exports = {
   registrarEntrada, registrarCategoria, registrarProveedor, subirImagenEquipo,
   listarCategorias, listarProveedores, listarInventario, obtenerHistorial, obtenerEquipoPorId, listarSedes,
-  actualizarEquipo, actualizarCategoria, actualizarProveedor,
+  actualizarEquipo, actualizarCategoria, actualizarProveedor, 
+  exportarExcel, importarMasivo
 };
