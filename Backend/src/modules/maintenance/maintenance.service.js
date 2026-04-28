@@ -19,7 +19,7 @@ const registrarOrden = async (datosOrden) => {
   const ordenCreada = await maintenanceRepository.crearOrdenTrabajo(nuevaOrden);
 
   // 3. Bloqueamos el equipo en el Kardex
-  await inventoryRepository.actualizarItem(datosOrden.item_id, { estado_operativo: 'En Mantenimiento' });
+  await inventoryRepository.actualizarItem(datosOrden.item_id, { estado_operativo: 'En Reparación' });
   
   // 4. Escribimos en el historial del equipo
   await inventoryRepository.registrarHistorial(

@@ -141,41 +141,53 @@ const registrarProveedor = async (datos) => {
 };
 
 const listarInventario = async (filtros) => {
-  // 1. Llamamos a tu función obtenerInventario del repositorio
   const itemsBrutos = await inventoryRepository.obtenerInventario(filtros);
 
-  // 2. Mapeamos los datos crudos a nombres que el Frontend entienda fácil
-  return itemsBrutos.map(item => ({
-    id: item.id,
-    // Priorizamos código de barras, si no hay, la serie, si no, 'S/N'
-    codigo: item.codigo_barras || item.serie_fabricante || 'S/N', 
-    nombre: item.nombre,
-    // Gracias al join de tu repositorio, aquí tenemos los nombres reales
-    categoria: item.categorias?.nombre || 'Sin categoría',
-    sede: item.sedes?.nombre || 'N/A',
-    proveedor: item.es_externo 
-      ? `${item.clientes_empresas?.nombre_comercial || 'Desconocido'} - Sede: ${item.clientes_sucursales?.nombre_sucursal || 'Matriz'}` 
-      : (item.proveedores?.nombre_empresa || 'N/A'),
-    // Usamos los nombres exactos de tu SQL
-    stock: item.cantidad_stock, 
-    unidad: item.unidad_medida,
-    // Calculamos el estado dinámicamente aquí
-    estado_operativo: item.estado_operativo || 'Operativo',
+  return itemsBrutos.map(item => {
     
-    // Tu antigua variable 'estado' la renombramos a 'nivel_stock' para no perder esa advertencia
-    nivel_stock: item.cantidad_stock <= 2 ? 'Crítico' : 'Óptimo',
+    // 🧠 Lógica para determinar el Nivel de Stock real
+    let nivelS = 'Óptimo';
     
-    detalles: item.detalles,
+    if (item.es_externo) {
+      // Si es de cliente, su stock natural es 1 y no es una alerta de compra
+      nivelS = 'Equipo Cliente'; 
+    } else if (item.serie_fabricante && item.cantidad_stock === 1) {
+      // Si tiene serie (gracias a tu bucle multiplicador) y stock 1, es un activo individual sano
+      nivelS = 'Activo Único'; 
+    } else if (item.cantidad_stock === 0) {
+      nivelS = 'Agotado';
+    } else if (item.cantidad_stock <= 2) {
+      // Solo marcamos como Crítico lo que no tiene serie (repuestos, suministros) y queda poco
+      nivelS = 'Crítico'; 
+    }
 
-    cat_id: item.cat_id,
-    prov_id: item.prov_id || item.proveedor_id, 
-    serie_fabricante: item.serie_fabricante,
-    codigo_barras: item.codigo_barras,
-    es_externo: item.es_externo,
-    cliente_id: item.cliente_id,
-    sucursal_id: item.sucursal_id,
-    notas_ingreso: item.notas_ingreso
-  }));
+    return {
+      id: item.id,
+      codigo: item.codigo_barras || item.serie_fabricante || 'S/N', 
+      nombre: item.nombre,
+      categoria: item.categorias?.nombre || 'Sin categoría',
+      sede: item.sedes?.nombre || 'N/A',
+      proveedor: item.es_externo 
+        ? `${item.clientes_empresas?.nombre_comercial || 'Desconocido'} - Sede: ${item.clientes_sucursales?.nombre_sucursal || 'Matriz'}` 
+        : (item.proveedores?.nombre_empresa || 'N/A'),
+      stock: item.cantidad_stock, 
+      unidad: item.unidad_medida,
+      estado_operativo: item.estado_operativo || 'Operativo',
+      
+      // Enviamos el nuevo nivel calculado
+      nivel_stock: nivelS,
+      
+      detalles: item.detalles,
+      cat_id: item.cat_id,
+      prov_id: item.prov_id || item.proveedor_id, 
+      serie_fabricante: item.serie_fabricante,
+      codigo_barras: item.codigo_barras,
+      es_externo: item.es_externo,
+      cliente_id: item.cliente_id,
+      sucursal_id: item.sucursal_id,
+      notas_ingreso: item.notas_ingreso
+    };
+  });
 };
 
 const listarCategorias = async () => await inventoryRepository.obtenerCategorias();
