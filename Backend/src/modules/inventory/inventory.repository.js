@@ -18,7 +18,8 @@ const crearItemKardex = async (datosItem) => {
         es_externo: datosItem.es_externo || false,
         cliente_id: datosItem.cliente_id || null,
         sucursal_id: datosItem.sucursal_id || null,
-        notas_ingreso: datosItem.notas_ingreso || null
+        notas_ingreso: datosItem.notas_ingreso || null,
+        estado_operativo: datosItem.estado_operativo
       }
     ])
     .select() // Pedimos que nos devuelva el registro recién creado

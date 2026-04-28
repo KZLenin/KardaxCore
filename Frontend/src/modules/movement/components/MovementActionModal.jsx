@@ -1,24 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, ArrowDownToLine, ArrowUpFromLine, Wrench, Check, Camera } from 'lucide-react'; // 🔥 Añadimos Camera
+import { Loader2, ArrowDownToLine, ArrowUpFromLine, Wrench, Check, Camera, AlertTriangle } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // 🔥 Importamos los Selects
 import { toast } from 'sonner';
 import { movementsService } from '../services/movementsService';
 
 const MovementActionModal = ({ isOpen, onClose, tipoAccion, equipo, onSuccess }) => {
   const [cantidad, setCantidad] = useState(1);
   const [motivo, setMotivo] = useState('');
-  const [evidencia, setEvidencia] = useState(null); // 🔥 Nuevo estado para la foto
+  const [evidencia, setEvidencia] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 🔥 Nuevos estados para Mantenimiento
+  const [prioridad, setPrioridad] = useState('Media');
+  const [tipoMantenimiento, setTipoMantenimiento] = useState('Correctivo');
 
   useEffect(() => {
     if (isOpen) {
       setCantidad(1);
       setMotivo('');
-      setEvidencia(null); // Limpiamos la foto al abrir
+      setEvidencia(null);
+      setPrioridad('Media');
+      setTipoMantenimiento('Correctivo');
     }
   }, [isOpen]);
 
@@ -32,11 +39,10 @@ const MovementActionModal = ({ isOpen, onClose, tipoAccion, equipo, onSuccess })
 
   const Icono = config.icono;
 
-  // 🔥 Manejador para atrapar y validar la foto
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // Limite de 5MB
+      if (file.size > 5 * 1024 * 1024) {
         toast.error("La foto debe pesar menos de 5MB");
         e.target.value = ''; 
         return;
@@ -51,7 +57,6 @@ const MovementActionModal = ({ isOpen, onClose, tipoAccion, equipo, onSuccess })
       return toast.error(`No puedes procesar más del stock actual (${equipo.stock})`);
     }
 
-    // 🔥 Validación extra solo para BAJAS
     if (tipoAccion === 'BAJA' && !evidencia) {
       return toast.error("La fotografía de evidencia es obligatoria para dar de baja.");
     }
@@ -59,20 +64,22 @@ const MovementActionModal = ({ isOpen, onClose, tipoAccion, equipo, onSuccess })
     setIsSubmitting(true);
     try {
       if (tipoAccion === 'BAJA') {
-        // 🚀 Si es BAJA, usamos el método especial que armamos para FormData
         await movementsService.darDeBajaEquipo(
           equipo.id,
           { motivo: motivo.trim(), cantidadActual: Number(cantidad) },
           evidencia
         );
       } else {
-        // 🚀 Si es normal, usamos el tuyo de siempre
+        // 🚀 Ajustamos el payload normal para enviar Prioridad y Tipo si es Taller
         await movementsService.registrar({
           itemId: equipo.id,
           tipoMovimiento: tipoAccion,
           cantidad: Number(cantidad),
           motivo: motivo.trim(),
-          destinoNombre: tipoAccion === 'MANTENIMIENTO' ? 'Taller Interno' : 'Bodega'
+          destinoNombre: tipoAccion === 'MANTENIMIENTO' ? 'Taller Interno' : 'Bodega',
+          // 🔥 Anexamos estos campos (el backend los ignorará si es un Ingreso normal)
+          prioridad: tipoAccion === 'MANTENIMIENTO' ? prioridad : null,
+          tipoMantenimiento: tipoAccion === 'MANTENIMIENTO' ? tipoMantenimiento : null
         });
       }
       
@@ -80,7 +87,7 @@ const MovementActionModal = ({ isOpen, onClose, tipoAccion, equipo, onSuccess })
       onSuccess(); 
       onClose();
     } catch (error) {
-      toast.error(error);
+      toast.error(error.message || error);
     } finally {
       setIsSubmitting(false);
     }
@@ -108,24 +115,59 @@ const MovementActionModal = ({ isOpen, onClose, tipoAccion, equipo, onSuccess })
             />
           </div>
 
+          {/* 🔥 CAMPOS EXCLUSIVOS PARA MANTENIMIENTO */}
+          {tipoAccion === 'MANTENIMIENTO' && (
+            <div className="grid grid-cols-2 gap-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="space-y-2">
+                <Label className="font-semibold text-amber-900 text-xs">Tipo de Trabajo *</Label>
+                <Select value={tipoMantenimiento} onValueChange={setTipoMantenimiento}>
+                  <SelectTrigger className="bg-white h-9 text-xs border-amber-300">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Correctivo">Correctivo (Reparación)</SelectItem>
+                    <SelectItem value="Preventivo">Preventivo (Limpieza)</SelectItem>
+                    <SelectItem value="Instalación">Instalación / Armado</SelectItem>
+                    <SelectItem value="Inspección">Inspección Técnica</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="font-semibold text-amber-900 text-xs flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" /> Prioridad *
+                </Label>
+                <Select value={prioridad} onValueChange={setPrioridad}>
+                  <SelectTrigger className="bg-white h-9 text-xs border-amber-300">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Baja">🟢 Baja (Rutina)</SelectItem>
+                    <SelectItem value="Media">🟡 Media (Normal)</SelectItem>
+                    <SelectItem value="Alta">🟠 Alta (Afecta operación)</SelectItem>
+                    <SelectItem value="Urgente">🔴 Urgente (Crítico)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label className="font-semibold text-zinc-900">Motivo / Detalles *</Label>
             <Textarea 
-              placeholder="Ej. Devolución por garantía, equipo quemado, etc." 
+              placeholder={tipoAccion === 'MANTENIMIENTO' ? "Describe la falla detalladamente para el técnico..." : "Ej. Devolución por garantía, equipo quemado, etc."} 
               value={motivo} onChange={(e) => setMotivo(e.target.value)}
               className="resize-none focus:ring-blue-500 h-24" required
             />
           </div>
 
-          {/* 🔥 SECCIÓN DE FOTO: Se inyecta aquí dinámicamente solo si es BAJA */}
           {tipoAccion === 'BAJA' && (
             <div className="bg-rose-50 border-2 border-dashed border-rose-200 rounded-lg p-4 text-center space-y-2">
               <Label className="font-semibold text-rose-700 uppercase block">Fotografía de Evidencia *</Label>
               <div className="flex flex-col items-center gap-2">
                 <Camera className="w-8 h-8 text-rose-400" />
                 <Input 
-                  type="file" 
-                  accept="image/jpeg, image/png, image/webp"
+                  type="file" accept="image/jpeg, image/png, image/webp"
                   onChange={handleFileChange}
                   className="w-full text-xs file:bg-rose-100 file:text-rose-700 file:border-0 file:rounded-md file:px-4 file:py-1 file:font-semibold hover:file:bg-rose-200"
                 />

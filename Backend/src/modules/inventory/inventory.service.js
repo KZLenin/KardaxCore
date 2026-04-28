@@ -1,4 +1,6 @@
 const inventoryRepository = require('./inventory.repository');
+const maintenanceService = require('../maintenance/maintenance.service');
+
 const { generarExcelGenerico } = require('../../utils/excelGenerator');
 
 const registrarEntrada = async (datos) => {
@@ -47,6 +49,7 @@ const registrarEntrada = async (datos) => {
       es_externo: esExterno,
       cliente_id: clienteFinal,
       sucursal_id: sucursalFinal,
+      estado_operativo: esExterno ? 'En Reparación' : (datos.estado_operativo || datos.estadoOperativo || 'Operativo'),
       notas_ingreso: esExterno ? datos.notasIngreso : null
     };
 
@@ -54,26 +57,38 @@ const registrarEntrada = async (datos) => {
     const nuevoItem = await inventoryRepository.crearItemKardex(datosLimpios);
 
     // B. Registramos el Historial
-    const descripcionHistorial = esExterno
-      ? `Ingreso de equipo de CLIENTE a Taller. Notas: ${datos.notasIngreso || 'Ninguna'}`
+      const descripcionHistorial = esExterno
+      ? `Ingreso de equipo de CLIENTE a Taller. Notas: ${datosLimpios.notas_ingreso || 'Ninguna'}`
       : `Ingreso inicial a BODEGA. Stock inicial: ${stockPorFila} ${unidadTexto}`;
 
+    
     await inventoryRepository.registrarHistorial(
       nuevoItem.id,                 
-      'INGRESO_SISTEMA',            
+      esExterno ? 'INGRESO_TALLER' : 'INGRESO_SISTEMA',            
       descripcionHistorial,         
       datos.creadoPor || 'Sistema' 
     );
 
-    // C. Registramos el Movimiento Logístico
+    // C. Log Logístico (Usamos el repo directo para NO duplicar el stock en movements.service)
     await inventoryRepository.registrarMovimiento({
       item_id: nuevoItem.id,
-      tipo_movimiento: 'ENTRADA',
+      tipo_movimiento: esExterno ? 'MANTENIMIENTO' : 'INGRESO', // Usamos tus mismas nomenclaturas
       cantidad: stockPorFila,
       sede_destino_id: datos.sedeId,
       usuario_id: datos.creadoPor || null, 
-      observaciones: esExterno ? 'Recepción de equipo de cliente' : 'Ingreso de inventario propio'
+      observaciones: esExterno ? 'Recepción de equipo de cliente a Taller' : 'Ingreso inicial'
     });
+
+    // 🔥 D. LA MAGIA ENTRE MÓDULOS: CREAR LA ORDEN DE TRABAJO AUTOMÁTICAMENTE
+    if (esExterno) {
+      // Usamos exactamente los campos que espera tu 'registrarOrden' en maintenance.service.js
+      await maintenanceService.registrarOrden({
+        item_id: nuevoItem.id,
+        motivo: datosLimpios.notas_ingreso || 'Revisión y diagnóstico inicial',
+        tipo_mantenimiento: 'Revisión Diagnóstica',
+        creado_por: datos.creadoPor 
+      });
+    }
 
     itemsCreados.push(nuevoItem);
   }

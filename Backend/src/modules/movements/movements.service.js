@@ -49,9 +49,9 @@ const crearMovimiento = async (datos, usuarioId) => {
     const nuevaOrden = {
       item_id: item.id,
       creado_por: usuarioId, 
-      tipo_mantenimiento: 'Correctivo', 
+      tipo_mantenimiento: datos.tipoMantenimiento || 'Correctivo', // Lo que eligió el usuario
       estado: 'Pendiente',
-      prioridad: 'Alta', 
+      prioridad: datos.prioridad || 'Media', // Lo que eligió el usuario
       motivo: datos.motivo || 'Ingreso desde Terminal POS de Bodega'
     };
     await repository.crearOrdenTrabajo(nuevaOrden);
