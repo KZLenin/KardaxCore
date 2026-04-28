@@ -34,14 +34,12 @@ const registrarOrden = async (datosOrden) => {
 
 const listarOrdenes = async () => {
   const ordenes = await maintenanceRepository.obtenerOrdenes();
-  return Promise.all(ordenes.map(async (orden) => {
-    // 2. Buscamos los repuestos vinculados a esta orden
+  
+  // 1. Mapeamos las órdenes y calculamos costos (Tu código actual)
+  const ordenesFormateadas = await Promise.all(ordenes.map(async (orden) => {
     const repuestos = await sparepartsRepository.obtenerRepuestosPorOrden(orden.id);
-    
-    // 3. Sumamos el costo total de los repuestos usados
     const totalRepuestos = repuestos.reduce((sum, r) => sum + (Number(r.costo_unitario) * r.cantidad), 0);
 
-  // Formateamos para el frontend
     return {
       id: orden.id,
       equipo_nombre: orden.inventario?.nombre || 'Equipo Desconocido',
@@ -52,15 +50,38 @@ const listarOrdenes = async () => {
       prioridad: orden.prioridad,
       motivo: orden.motivo,
       fecha: new Date(orden.fecha_creacion).toLocaleDateString(),
-
-      item_id: orden.item_id, // Vital para saber a quién desbloquear
+      item_id: orden.item_id, 
       diagnostico: orden.diagnostico,
       trabajo_realizado: orden.trabajo_realizado,
       costo_mano_obra: orden.costo_mano_obra,
       costo_repuestos: totalRepuestos,
       costo_total: totalRepuestos + (Number(orden.costo_mano_obra) || 0)
     };
-   }));
+  }));
+
+  // 🔥 2. EL ALGORITMO SE MUDA AL BACKEND
+  const ordenesOrdenadas = ordenesFormateadas.sort((a, b) => {
+    const pesoEstado = {
+      'Pendiente': 1, 'Ingresado': 1, 'En Revisión': 2, 
+      'Finalizado': 3, 'Reparado': 3, 'Listo para Entrega': 3
+    };
+    const pesoPrioridad = {
+      'Urgente': 1, 'Alta': 2, 'Media': 3, 'Baja': 4
+    };
+
+    const estadoA = pesoEstado[a.estado] || 2;
+    const estadoB = pesoEstado[b.estado] || 2;
+
+    if (estadoA !== estadoB) return estadoA - estadoB;
+
+    const prioA = pesoPrioridad[a.prioridad] || 4;
+    const prioB = pesoPrioridad[b.prioridad] || 4;
+
+    return prioA - prioB;
+  });
+
+  // 3. Devolvemos el array ya digerido y ordenado
+  return ordenesOrdenadas;
 };
 
 const actualizarOrden = async (id, datosActualizados, item_id, usuario_id) => {
