@@ -1,5 +1,5 @@
 import React from 'react';
-import AppRouter from './core/router/AppRouter';
+import AppRouter from './core/router/appRouter';
 import { Toaster } from "@/components/ui/toaster";
 function App() {
   return (
