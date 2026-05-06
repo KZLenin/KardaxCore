@@ -1,8 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import ProtectedRoute from './ProtectedRoute';
+import ProtectedRoute from './protectedRoute';
 
 // Importaremos las vistas (crearemos estos archivos en el siguiente paso)
-import LoginView from '../../modules/auth/views/LoginView';
+import LoginView from '../../modules/auth/views/loginView';
 import ForgotPasswordView from '../../modules/auth/views/ForgotPasswordView';
 import ResetPasswordView from '../../modules/auth/views/ResetPasswordView';
 
