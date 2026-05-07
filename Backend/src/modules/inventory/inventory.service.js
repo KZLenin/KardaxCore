@@ -4,6 +4,7 @@ const maintenanceService = require('../maintenance/maintenance.service');
 const { generarExcelGenerico } = require('../../utils/excelGenerator');
 
 const registrarEntrada = async (datos) => {
+
   // 1. Validaciones obligatorias
   if (!datos.sedeId || !datos.categoriaId || !datos.nombre) {
     throw new Error('Faltan datos obligatorios para registrar el ítem en el Kardex.');
@@ -15,8 +16,12 @@ const registrarEntrada = async (datos) => {
 
   // 2. Evaluamos si es de Taller o Propio
   const esExterno = datos.es_externo === true || datos.es_externo === 'true';
-  const clienteFinal = esExterno ? datos.clienteId : null;
-  const sucursalFinal = esExterno ? datos.sucursalId : null;
+  const idDelCliente = datos.clienteId || datos.cliente_id || null;
+  const idDeSucursal = datos.sucursalId || datos.sucursal_id || null;
+
+  const clienteFinal = esExterno ? idDelCliente : null;
+  const sucursalFinal = esExterno ? idDeSucursal : null;
+
   const proveedorFinal = esExterno ? null : datos.proveedorId;
 
   // 3. Atrapamos las cantidades que vienen del frontend (OJO: en camelCase)

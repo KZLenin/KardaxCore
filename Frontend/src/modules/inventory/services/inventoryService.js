@@ -52,7 +52,7 @@ export const inventoryService = {
         unidadMedida: datosItem.unidadMedida,   // Convertimos
         // Nuevos campos de Taller
         es_externo: datosItem.es_externo,
-        clienteid: datosItem.clienteId || null,
+        clienteId: datosItem.clienteId || null,
         sucursalId: datosItem.sucursalId || null,
         prioridad: datosItem.prioridad, 
         tipoMantenimiento: datosItem.tipoMantenimiento,
