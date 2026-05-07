@@ -79,7 +79,8 @@ const getHistorial = async (buscarTerm) => {
     empresa_nombre: data.empresa?.nombre_comercial || data.cliente_nombre || 'N/A',
     sucursal_nombre: data.sucursal?.nombre_sucursal || 'Matriz Principal',
     direccion_envio: data.sucursal?.direccion || 'Dirección no registrada',
-    contacto_entrega: data.sucursal?.contacto_nombre || 'S/N',
+    contacto_nombre: data.sucursal?.contacto_nombre || 'S/N',
+    contacto_telefono: data.sucursal?.telefono || 'S/N',
     ruc: data.empresa?.ruc || '',
     items: data.items.map(i => ({
       item_nombre: i.item?.nombre || 'Equipo desconocido',

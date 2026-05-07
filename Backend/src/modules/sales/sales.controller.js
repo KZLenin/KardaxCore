@@ -82,10 +82,14 @@ const descargarPDF = async (req, res) => {
         doc.text(`Dirección: ${detalle.direccion_envio}`);
     }
     
-    if (detalle.contacto_entrega && detalle.contacto_entrega !== 'S/N') {
-        doc.text(`Atención: ${detalle.contacto_entrega}`);
+    if (detalle.contacto_nombre && detalle.contacto_nombre !== 'S/N') {
+        doc.text(`Atención: ${detalle.contacto_nombre}`);
     }
-    
+
+    if (detalle.contacto_telefono && detalle.contacto_telefono !== 'S/N') {
+        doc.text(`Teléfono: ${detalle.contacto_telefono}`);
+    }
+
     doc.text(`Fecha: ${new Date(detalle.fecha_venta).toLocaleDateString()}`);
     doc.text(`Comprobante / Recibo: ${detalle.numero_comprobante || 'S/N'}`);
     doc.text(`PO del Cliente: ${detalle.po_cliente || 'N/A'}`);

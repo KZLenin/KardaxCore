@@ -1,5 +1,6 @@
 const salesRepository = require('./sales.repository');
 const movementsService = require('../movements/movements.service');
+const inventoryRepository = require('../inventory/inventory.repository');
 
 const procesarVentaB2B = async (datosVenta, vendedorId) => {
   // 🔥 1. AHORA EXTRAEMOS LOS IDs QUE MANDA EL FRONTEND
@@ -8,6 +9,22 @@ const procesarVentaB2B = async (datosVenta, vendedorId) => {
   // Validamos con los nuevos campos
   if (!empresaId || !sucursalId || !items || items.length === 0) {
     throw new Error('Empresa, sucursal y al menos un artículo son obligatorios.');
+  }
+
+  const estadosBloqueados = ['En Reparación', 'Agotado/Baja', 'En Mantenimiento', 'Vendido'];
+
+  for (const item of items) {
+    // Vamos a buscar el equipo a la base de datos para ver su verdad
+    const equipoDB = await inventoryRepository.obtenerItemPorId(item.itemId);
+    
+    if (!equipoDB) {
+      throw new Error(`Uno de los equipos seleccionados ya no existe en el sistema.`);
+    }
+
+    // Si tiene un estado prohibido, reventamos la operación inmediatamente
+    if (estadosBloqueados.includes(equipoDB.estado_operativo)) {
+      throw new Error(`¡Alto ahí! No puedes vender "${equipoDB.nombre}" porque su estado actual es: ${equipoDB.estado_operativo}.`);
+    }
   }
 
   const nombreEmpresaReal = await salesRepository.obtenerNombreEmpresa(empresaId);
