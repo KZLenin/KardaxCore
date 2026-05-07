@@ -20,10 +20,13 @@ const registrarEntrada = async (datos) => {
   const proveedorFinal = esExterno ? null : datos.proveedorId;
 
   // 3. Atrapamos las cantidades que vienen del frontend (OJO: en camelCase)
- const cantidadIngresada = Number(datos.cantidad_stock || datos.cantidadStock) || 1;
+  const cantidadIngresada = Number(datos.cantidad_stock || datos.cantidadStock) || 1;
   const unidadTexto = (datos.unidad_medida || datos.unidadMedida || '').toUpperCase();
 
-  // 4. 🔥 LA MAGIA MULTIPLICADORA
+  const prioridadSeleccionada = datos.prioridad || 'Media';
+  const tipoMantenimientoSeleccionado = datos.tipoMantenimiento || 'Correctivo';
+
+  // 4. MULTIPLICADORA
   const esUnidad = unidadTexto === 'UNIDAD' || unidadTexto === 'U';
   
   // Si es Unidad y NO es de un cliente (porque los de cliente entran 1 a 1), multiplicamos
@@ -85,8 +88,9 @@ const registrarEntrada = async (datos) => {
       await maintenanceService.registrarOrden({
         item_id: nuevoItem.id,
         motivo: datosLimpios.notas_ingreso || 'Revisión y diagnóstico inicial',
-        tipo_mantenimiento: 'Revisión Diagnóstica',
-        creado_por: datos.creadoPor 
+        tipo_mantenimiento: tipoMantenimientoSeleccionado, 
+        prioridad: prioridadSeleccionada, 
+        creado_por: datos.creadoPor
       });
     }
 

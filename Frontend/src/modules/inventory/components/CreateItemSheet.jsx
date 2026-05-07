@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Plus, Box, ScanText, User, Hash, Check, Wrench } from "lucide-react";
+import { Loader2, Plus, Box, ScanText, User, Hash, Check, Wrench, AlertTriangle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch"; 
 import { Textarea } from "@/components/ui/textarea"; 
+import { Label } from "@/components/ui/label";
 
 import { inventoryService } from '../services/inventoryService';
 import { useToast } from "@/hooks/use-toast"; //
@@ -31,6 +32,8 @@ const formSchema = z.object({
   es_externo: z.boolean().default(false),
   clienteId: z.string().optional(),
   sucursalId: z.string().optional(),
+  prioridad: z.string().default("Media"),
+  tipoMantenimiento: z.string().default("Correctivo"),
   notasIngreso: z.string().optional()
 });
 
@@ -54,7 +57,9 @@ const CreateItemSheet = ({ sedes = [], categorias = [], proveedores = [], client
       unidadMedida: "UNIDAD",
       es_externo: false, 
       clienteId: "", 
-      sucursalId: "", 
+      sucursalId: "",
+      prioridad: "Media",
+      tipoMantenimiento: "Correctivo", 
       notasIngreso: ""
     },
   });
@@ -232,6 +237,37 @@ const CreateItemSheet = ({ sedes = [], categorias = [], proveedores = [], client
                     <FormMessage />
                   </FormItem>
                 )} />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField control={form.control} name="tipoMantenimiento" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-semibold text-amber-900">Tipo Trabajo</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger className="bg-white h-9 text-xs"><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="Correctivo">Correctivo</SelectItem>
+                          <SelectItem value="Preventivo">Preventivo</SelectItem>
+                          <SelectItem value="Instalación">Instalación</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )} />
+
+                  <FormField control={form.control} name="prioridad" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-semibold text-amber-900">Prioridad</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger className="bg-white h-9 text-xs"><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="Baja">🟢 Baja</SelectItem>
+                          <SelectItem value="Media">🟡 Media</SelectItem>
+                          <SelectItem value="Alta">🟠 Alta</SelectItem>
+                          <SelectItem value="Urgente">🔴 Urgente</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )} />
+                </div>
 
                 <FormField control={form.control} name="notasIngreso" render={({ field }) => (
                   <FormItem className="space-y-1.5"><FormLabel className="text-sm font-semibold text-orange-900">Estado al Recibir</FormLabel>

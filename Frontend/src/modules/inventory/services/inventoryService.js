@@ -46,15 +46,17 @@ export const inventoryService = {
         sedeId: datosItem.sedeId,          // Convertimos
         categoriaId: datosItem.categoriaId,    // Convertimos
         proveedorId: datosItem.proveedorId || null,
-        serie_fabricante: datosItem.serieFabricante || null,
-        codigo_barras: datosItem.codigoBarras || null,
-        cantidad_stock: datosItem.cantidadStock, // Convertimos
-        unidad_medida: datosItem.unidadMedida,   // Convertimos
+        serieFabricante: datosItem.serieFabricante || null,
+        codigoBarras: datosItem.codigoBarras || null,
+        cantidadStock: datosItem.cantidadStock, // Convertimos
+        unidadMedida: datosItem.unidadMedida,   // Convertimos
         // Nuevos campos de Taller
         es_externo: datosItem.es_externo,
-        cliente_id: datosItem.clienteId || null,
-        sucursal_id: datosItem.sucursalId || null,
-        notas_ingreso: datosItem.notasIngreso || null
+        clienteid: datosItem.clienteId || null,
+        sucursalId: datosItem.sucursalId || null,
+        prioridad: datosItem.prioridad, 
+        tipoMantenimiento: datosItem.tipoMantenimiento,
+        notasIngreso: datosItem.notasIngreso || null
       };
 
       const response = await httpClient.post('/inventory/entrada', payload);
