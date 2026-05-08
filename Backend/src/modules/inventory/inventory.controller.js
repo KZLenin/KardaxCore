@@ -72,10 +72,10 @@ const getInventario = async (req, res) => {
 const actualizarEquipo = async (req, res) => {
   try {
     const { id } = req.params;
-    // 🔥 AÑADIMOS LOS 3 CAMPOS NUEVOS A LA EXTRACCIÓN
+    
     const { 
       nombre, categoria_id, proveedor_id, serie_fabricante, codigo_barras,
-      es_externo, cliente_id, sucursal_id,notas_ingreso 
+      es_externo, cliente_id, sucursal_id,notas_ingreso, imagen_url
     } = req.body;
 
     const datosLimpios = {
@@ -87,7 +87,8 @@ const actualizarEquipo = async (req, res) => {
       es_externo: es_externo || false,
       cliente_id: cliente_id || null,
       sucursal_id: sucursal_id || null,
-      notas_ingreso: notas_ingreso || null
+      notas_ingreso: notas_ingreso || null,
+      ...(imagen_url !== undefined && { imagen_url })
     };
     
     const equipoActualizado = await inventoryService.actualizarEquipo(id, datosLimpios);
@@ -261,10 +262,21 @@ const importarMasivo = async (req, res) => {
   }
 };
 
+const getGaleriaImagenes = async (req, res) => {
+  try {
+    const galeria = await inventoryService.obtenerGaleriaImagenes();
+    res.status(200).json(galeria);
+  } catch (error) {
+    console.error('[Error al obtener galería]:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+};
+
+
 
 module.exports = {
   registrarEntrada, crearCategoria, registrarProveedor, subirImagen,
-  getCategorias, getProveedores, getInventario, getHistorial, getSedes,
+  getCategorias, getProveedores, getInventario, getHistorial, getSedes, getGaleriaImagenes,
   actualizarEquipo, actualizarCategoria, actualizarProveedor,
   descargarEtiquetas, descargarEtiquetasMasivas, exportarInventarioExcel, importarMasivo
 };

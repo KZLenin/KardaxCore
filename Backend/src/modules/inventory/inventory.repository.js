@@ -285,9 +285,38 @@ const registrarMovimiento = async (datosMovimiento) => {
   }
 };
 
+const listarImagenesStorage = async () => {
+  const { data, error } = await supabase.storage
+    .from('inventario')
+    .list('equipos', {
+      limit: 100, // Traemos las últimas 100 fotos
+      offset: 0,
+      sortBy: { column: 'created_at', order: 'desc' }
+    });
+
+  if (error) throw new Error(`Error al listar imágenes del Storage: ${error.message}`);
+
+  // Mapeamos los archivos para generarles su URL pública inmediatamente
+  const imagenesConUrl = data
+    .filter(file => file.name !== '.emptyFolderPlaceholder') // Filtramos archivos basura
+    .map(file => {
+      const { data: publicData } = supabase.storage
+        .from('inventario')
+        .getPublicUrl(`equipos/${file.name}`);
+        
+      return {
+        nombre: file.name,
+        url: publicData.publicUrl,
+        creado: file.created_at
+      };
+    });
+
+  return imagenesConUrl;
+};
+
 module.exports = {
-  crearItemKardex, crearCategoria, crearProveedor, registrarHistorial, subirImagenStorage, registrarMovimiento,
+  crearItemKardex, crearCategoria, crearProveedor, registrarHistorial, subirImagenStorage, registrarMovimiento, listarImagenesStorage,
   obtenerCategorias, obtenerProveedores, obtenerInventario, obtenerHistorialItem, obtenerItemPorId, obtenerSedes,
   actualizarItem, actualizarCategoria, actualizarProveedor, actualizarImagenUrl,
-  importarItemsMasivo,
+  importarItemsMasivo, 
 };

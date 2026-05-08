@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Box, ScanText, Check, Pencil, Lock, Unlock, X, Archive, MapPin, AlignLeft, History, Printer, Hash, Wrench } from "lucide-react";
+import { Loader2, Box, ScanText, Check, Pencil, Lock, Unlock, X, Archive, MapPin, AlignLeft, History, Printer, Hash, Wrench, ImageIcon, UploadCloud, Images } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGr
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch"; 
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 import { inventoryService } from '../services/inventoryService';
 import { useToast } from "@/hooks/use-toast";
@@ -45,6 +46,10 @@ const EditItemSheet = ({ item, categorias = [], proveedores = [], clientes = [],
     resolver: zodResolver(formSchema),
     defaultValues: { nombre: "", categoriaId: "", proveedorId: "", serieFabricante: "", codigoBarras: "", cantidadStock: 1, unidadMedida: "UNIDAD", es_externo: false, clienteId: "", sucursalId: "", notasIngreso: "" },
   });
+
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imagenUrlActual, setImagenUrlActual] = useState(null);
+  const fileInputRef = useRef(null);
 
   const watchUnidad = form.watch("unidadMedida");
   const isExterno = form.watch("es_externo");
@@ -87,6 +92,8 @@ const EditItemSheet = ({ item, categorias = [], proveedores = [], clientes = [],
       form.setValue("sucursalId", String(item.sucursal_id || ""));
       form.setValue("notasIngreso", item.notas_ingreso || "");
 
+      setImagenUrlActual(item.imagen_url || null);
+
     } else if (!isOpen) {
       form.reset();
       setIsEditing(false); 
@@ -124,6 +131,52 @@ const EditItemSheet = ({ item, categorias = [], proveedores = [], clientes = [],
       toast({ title: "Error", description: error, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const GallerySelector = ({ onSelect }) => {
+  const [imagenes, setImagenes] = useState([]);
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    const loadGaleria = async () => {
+      const data = await inventoryService.getGaleriaImagenes();
+      setImagenes(data);
+      setCargando(false);
+    };
+    loadGaleria();
+  }, []);
+
+  if (cargando) return <div className="py-8 flex justify-center"><Loader2 className="animate-spin w-6 h-6 text-blue-600" /></div>;
+  if (imagenes.length === 0) return <p className="text-center text-zinc-500 py-8">No hay imágenes en el servidor aún.</p>;
+
+  return (
+    <div className="grid grid-cols-3 gap-4">
+      {imagenes.map((img, idx) => (
+        <div key={idx} onClick={() => onSelect(img.url)} className="cursor-pointer border rounded-md overflow-hidden hover:ring-2 hover:ring-blue-500 transition-all">
+          <img src={img.url} alt="Galeria" className="w-full h-24 object-cover" />
+        </div>
+      ))}
+    </div>
+  );
+};
+
+  const handleImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !item?.id) return;
+
+    setIsUploadingImage(true);
+    try {
+      const response = await inventoryService.subirImagenEquipo(item.id, file);
+      setImagenUrlActual(response.imagen_url); // Actualizamos la vista previa
+      toast({ title: "📸 Foto Subida", description: "La imagen se guardó correctamente en el Storage." });
+      if (onUpdated) onUpdated(); // Refrescamos la tabla de atrás
+    } catch (error) {
+      toast({ title: "Error al subir", description: error, variant: "destructive" });
+    } finally {
+      setIsUploadingImage(false);
+      // Limpiamos el input para que permita subir la misma foto si hubo un error
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -185,7 +238,72 @@ const EditItemSheet = ({ item, categorias = [], proveedores = [], clientes = [],
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto p-6 space-y-8">
+
+        <div className="flex flex-col items-center justify-center p-6 bg-white border border-zinc-200 border-dashed rounded-xl shadow-sm relative overflow-hidden group">
+            {isUploadingImage ? (
+              <div className="flex flex-col items-center justify-center space-y-3 py-8">
+                <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                <span className="text-sm font-medium text-zinc-600">Procesando imagen...</span>
+              </div>
+            ) : imagenUrlActual ? (
+              <div className="w-full flex flex-col items-center">
+                <img src={imagenUrlActual} alt="Equipo" className="w-48 h-48 object-contain rounded-md bg-zinc-50 border border-zinc-100 shadow-sm" />
+                <div className="mt-4 absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                  <Button variant="outline" size="sm" className="bg-white/90 backdrop-blur" onClick={() => fileInputRef.current?.click()}>
+                    <UploadCloud className="w-4 h-4 mr-2" /> Subir Nueva
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center space-y-3 py-6">
+                <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mb-2">
+                  <ImageIcon className="w-8 h-8 text-zinc-400" />
+                </div>
+                <p className="text-sm font-medium text-zinc-600">Sin imagen referencial</p>
+                
+                <div className="flex gap-2">
+                  <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
+                    <UploadCloud className="w-4 h-4 mr-2" /> Subir Foto
+                  </Button>
+
+                  {/* 🔥 BOTÓN Y MODAL DE GALERÍA */}
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Images className="w-4 h-4 mr-2" /> Galería
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-xl max-h-[80vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Imágenes Recientes en el Sistema</DialogTitle>
+                      </DialogHeader>
+                      <div className="mt-4">
+                        <GallerySelector 
+                          onSelect={async (url) => {
+                            setIsUploadingImage(true);
+                            try {
+                              // Reutilizamos la ruta de actualización para enlazar la URL existente
+                              await inventoryService.actualizarEquipo(item.id, { imagen_url: url });
+                              setImagenUrlActual(url);
+                              toast({ title: "Imagen enlazada", description: "Se ha vinculado la imagen al equipo." });
+                              if(onUpdated) onUpdated();
+                            } catch (error) {
+                              toast({ title: "Error", description: "No se pudo enlazar la imagen.", variant: "destructive" });
+                            } finally {
+                              setIsUploadingImage(false);
+                            }
+                          }} 
+                        />
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </div>
+            )}
+            <input type="file" ref={fileInputRef} className="hidden" accept="image/png, image/jpeg, image/webp" onChange={handleImageUpload} />
+          </div>
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit, (errores) => {
               console.error("🛑 ZOD BLOQUEÓ EL ENVÍO. Aquí está el error:", errores);

@@ -179,4 +179,28 @@ exportarExcel: async (payload) => {
     
     return response.data;
   },
+
+  subirImagenEquipo: async (id, file) => {
+    try {
+      const formData = new FormData();
+      formData.append('imagen', file); // 'imagen' es el nombre que espera multer en tu backend
+
+      const response = await httpClient.post(`/inventory/${id}/imagen`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.error || 'Error al subir la imagen';
+    }
+  },
+  getGaleriaImagenes: async () => {
+    try {
+      const response = await httpClient.get('/inventory/imagenes/galeria');
+      return response.data;
+    } catch (error) {
+      console.error("Error al cargar galería:", error);
+      return [];
+    }
+  },
 };
+

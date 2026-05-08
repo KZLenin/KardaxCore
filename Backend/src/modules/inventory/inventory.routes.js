@@ -27,6 +27,7 @@ router.get('/', protegerRuta, inventoryController.getInventario);
 router.get('/:id/historial', protegerRuta, inventoryController.getHistorial);
 router.get('/:id/etiquetas', protegerRuta, inventoryController.descargarEtiquetas);
 router.get('/sedes', protegerRuta, inventoryController.getSedes);
+router.get('/imagenes/galeria', protegerRuta, inventoryController.getGaleriaImagenes);
 
 router.put('/categorias/:id', protegerRuta, soloRol('ADMIN'), inventoryController.actualizarCategoria);
 router.put('/proveedores/:id', protegerRuta, soloRol('ADMIN'), inventoryController.actualizarProveedor);

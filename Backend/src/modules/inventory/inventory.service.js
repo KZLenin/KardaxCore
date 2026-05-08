@@ -191,6 +191,7 @@ const listarInventario = async (filtros) => {
       es_externo: item.es_externo,
       cliente_id: item.cliente_id,
       sucursal_id: item.sucursal_id,
+      imagen_url: item.imagen_url,
       notas_ingreso: item.notas_ingreso
     };
   });
@@ -302,9 +303,15 @@ const importarMasivo = async (items) => {
   // Llamamos a la función que ya tenías viva en el repository
   return await inventoryRepository.importarItemsMasivo(items);
 };
+
+const obtenerGaleriaImagenes = async () => {
+  return await inventoryRepository.listarImagenesStorage();
+};
+
+
 module.exports = {
   registrarEntrada, registrarCategoria, registrarProveedor, subirImagenEquipo,
-  listarCategorias, listarProveedores, listarInventario, obtenerHistorial, obtenerEquipoPorId, listarSedes,
+  listarCategorias, listarProveedores, listarInventario, obtenerHistorial, obtenerEquipoPorId, listarSedes, obtenerGaleriaImagenes,
   actualizarEquipo, actualizarCategoria, actualizarProveedor, 
   exportarExcel, importarMasivo
 };

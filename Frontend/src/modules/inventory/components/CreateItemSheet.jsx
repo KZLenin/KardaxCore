@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Plus, Box, ScanText, User, Hash, Check, Wrench, AlertTriangle } from "lucide-react";
+import { Loader2, Plus, Box, ScanText, User, Hash, Check, Wrench, AlertTriangle, ImageIcon, UploadCloud, Images, X   } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch"; 
 import { Textarea } from "@/components/ui/textarea"; 
 import { Label } from "@/components/ui/label";
@@ -17,7 +18,32 @@ import { inventoryService } from '../services/inventoryService';
 import { useToast } from "@/hooks/use-toast"; //
 
 
+const GallerySelector = ({ onSelect }) => {
+  const [imagenes, setImagenes] = useState([]);
+  const [cargando, setCargando] = useState(true);
 
+  useEffect(() => {
+    const loadGaleria = async () => {
+      const data = await inventoryService.getGaleriaImagenes();
+      setImagenes(data);
+      setCargando(false);
+    };
+    loadGaleria();
+  }, []);
+
+  if (cargando) return <div className="py-8 flex justify-center"><Loader2 className="animate-spin w-6 h-6 text-blue-600" /></div>;
+  if (imagenes.length === 0) return <p className="text-center text-zinc-500 py-8">No hay imágenes en el servidor aún.</p>;
+
+  return (
+    <div className="grid grid-cols-3 gap-4">
+      {imagenes.map((img, idx) => (
+        <div key={idx} onClick={() => onSelect(img.url)} className="cursor-pointer border rounded-md overflow-hidden hover:ring-2 hover:ring-blue-500 transition-all">
+          <img src={img.url} alt="Galeria" className="w-full h-24 object-cover" />
+        </div>
+      ))}
+    </div>
+  );
+};
 // 1. EL BLINDAJE (Mismo Zod Schema)
 
 const formSchema = z.object({
@@ -78,25 +104,71 @@ const CreateItemSheet = ({ sedes = [], categorias = [], proveedores = [], client
     }
   }, [isExterno, form]);
 
-  // 3. LA FUNCIÓN DE GUARDADO (Misma lógica)
+  useEffect(() => {
+    if (!isOpen) {
+      setImagenFile(null);
+      setImagenPreview(null);
+      form.reset();
+    }
+  }, [isOpen, form]);
+
+
+ // 3. LA FUNCIÓN DE GUARDADO
   const onSubmit = async (values) => {
     setIsSubmitting(true);
     try {
-      await inventoryService.registrarEntrada(values);
-      // Aquí llamaríamos a la función del toast para mostrar el éxito, ej:
-      toast({ title: "¡Éxito!", description: "El artículo ha sido registrado." }); 
+      // PASO 1: Creamos el o los equipos en la Base de Datos
+      const respuestaBackend = await inventoryService.registrarEntrada(values);
+      
+      // 🔥 EL FIX ESTÁ AQUÍ: Extraemos el array real que viene dentro de "item"
+      const itemsCreados = respuestaBackend.item; 
 
-      form.reset();
+      // PASO 2: El modo silencioso para la foto
+      if (itemsCreados && itemsCreados.length > 0 && (imagenFile || imagenPreview)) {
+        const primerEquipoId = itemsCreados[0].id;
+        let urlFinalParaTodos = null;
+
+        if (imagenFile) {
+          // A. Si es un archivo nuevo, lo subimos amarrado al primer equipo
+          const responseImagen = await inventoryService.subirImagenEquipo(primerEquipoId, imagenFile);
+          urlFinalParaTodos = responseImagen.imagen_url;
+        } else if (imagenPreview) {
+          // B. Si es de la galería, solo guardamos el texto de la URL
+          urlFinalParaTodos = imagenPreview;
+          await inventoryService.actualizarEquipo(primerEquipoId, { imagen_url: urlFinalParaTodos });
+        }
+
+        // C. Si el bucle clonó equipos (ej. creaste 5 teclados), les copiamos la URL a los demás
+        if (urlFinalParaTodos && itemsCreados.length > 1) {
+          const promesasClones = itemsCreados.slice(1).map(item => 
+            inventoryService.actualizarEquipo(item.id, { imagen_url: urlFinalParaTodos })
+          );
+          await Promise.all(promesasClones); // Ejecutamos todas las actualizaciones en paralelo
+        }
+      }
+
+      toast({ title: "¡Éxito!", description: "El artículo y su imagen han sido registrados." }); 
+
       setIsOpen(false);
       if (onCreated) onCreated();   
     } catch (error) {
-      alert(error);
+      toast({ title: "Error", description: error, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImagenFile(file);
+      setImagenPreview(URL.createObjectURL(file)); // Crea una URL local temporal para la preview
+    }
+  };
 
+  const [imagenFile, setImagenFile] = useState(null); // El archivo físico si lo sube
+  const [imagenPreview, setImagenPreview] = useState(null); // La URL para previsualizar (física o de galería)
+  const fileInputRef = useRef(null);
 
   const categoriasPrincipales = categorias.filter(c => !c.categoria_padre_id);
   const getSubcategorias = (idPadre) => categorias.filter(c => c.categoria_padre_id === idPadre);
@@ -122,6 +194,54 @@ const CreateItemSheet = ({ sedes = [], categorias = [], proveedores = [], client
         {/* Formulario (Con padding y espaciado consistente) */}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 p-6">
+
+            <div className="flex flex-col items-center justify-center p-6 bg-white border border-zinc-200 border-dashed rounded-xl shadow-sm relative overflow-hidden group">
+              {imagenPreview ? (
+                <div className="w-full flex flex-col items-center">
+                  <img src={imagenPreview} alt="Preview" className="w-48 h-48 object-contain rounded-md bg-zinc-50 border border-zinc-100 shadow-sm" />
+                  <Button 
+                    type="button"
+                    variant="destructive" 
+                    size="icon" 
+                    className="absolute top-2 right-2 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" 
+                    onClick={() => { setImagenPreview(null); setImagenFile(null); }}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center space-y-3 py-4">
+                  <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mb-2">
+                    <ImageIcon className="w-8 h-8 text-zinc-400" />
+                  </div>
+                  <p className="text-sm font-medium text-zinc-600">Añadir foto representativa</p>
+                  
+                  <div className="flex gap-2">
+                    <Button type="button" variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
+                      <UploadCloud className="w-4 h-4 mr-2" /> Subir
+                    </Button>
+
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button type="button" variant="outline" size="sm">
+                          <Images className="w-4 h-4 mr-2" /> Galería
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-xl max-h-[80vh] overflow-y-auto">
+                        <DialogHeader><DialogTitle>Imágenes Recientes</DialogTitle></DialogHeader>
+                        <GallerySelector onSelect={(url) => {
+                          setImagenPreview(url);
+                          setImagenFile(null); // Borramos el físico porque seleccionó de la galería
+                          document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); // Truco para cerrar el modal de shadcn
+                        }} />
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </div>
+              )}
+              {/* Input oculto */}
+              <input type="file" ref={fileInputRef} className="hidden" accept="image/png, image/jpeg, image/webp" onChange={handleFileChange} />
+            </div>
 
             <FormField control={form.control} name="es_externo" render={({ field }) => (
               <FormItem className={`flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm transition-colors ${field.value ? 'bg-orange-50 border-orange-200' : 'bg-white border-zinc-200'}`}>
