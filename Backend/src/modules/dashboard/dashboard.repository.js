@@ -8,30 +8,21 @@ const obtenerEstadisticas = async () => {
   const [
     { data: inventarioRaw },
     { data: movimientosRaw },
-    { data: stockCriticoRaw }, // ← Vamos a filtrar esto mejor en el Service
     { data: garantiasRaw }
   ] = await Promise.all([
-    supabase.from('inventario').select('estado_operativo, cantidad_stock'),
+    // 🔥 REGRESAMOS serie_fabricante y unidad_medida PARA PODER FILTRAR LA BASURA
+    supabase.from('inventario').select('id, nombre, cantidad_stock, estado_operativo, es_externo, serie_fabricante, unidad_medida'),
     
     supabase.from('movimientos_logisticos')
             .select('tipo_movimiento, fecha_movimiento')
             .gte('fecha_movimiento', fecha7DiasISO),
             
-    // 🔥 CAMBIO AQUÍ: Traemos serie y es_externo para poder discriminar
-    supabase.from('inventario')
-            .select('id, nombre, cantidad_stock, serie_fabricante, es_externo')
-            .lte('cantidad_stock', 2)
-            .neq('estado_operativo', 'Agotado/Baja'),
-            
     supabase.from('ventas_detalle')
-            .select(`
-              garantia_dias_cliente,
-              venta:ventas ( fecha_venta )
-            `)
+            .select('garantia_dias_cliente, venta:ventas ( fecha_venta )')
             .gt('garantia_dias_cliente', 0)
   ]);
 
-  return { inventarioRaw, movimientosRaw, stockCriticoRaw, garantiasRaw };
+  return { inventarioRaw, movimientosRaw, garantiasRaw };
 };
 
 module.exports = { obtenerEstadisticas };

@@ -1,36 +1,48 @@
 const repository = require('./dashboard.repository');
 
 const getDashboardData = async () => {
-  const { inventarioRaw, movimientosRaw, stockCriticoRaw, garantiasRaw } = await repository.obtenerEstadisticas();
+  const { inventarioRaw, movimientosRaw, garantiasRaw } = await repository.obtenerEstadisticas();
 
-  // --- 1. PROCESAR SALUD DEL INVENTARIO ---
   let totalOperativo = 0;
   let totalTaller = 0;
   let totalAgotado = 0;
 
+  const stockAgrupado = {};
+
   (inventarioRaw || []).forEach(item => {
+    // 1. Salud Global (Para el gráfico de pastel)
     if (item.estado_operativo === 'Operativo') totalOperativo++;
     else if (item.estado_operativo === 'En Reparación') totalTaller++;
-    else if (item.estado_operativo === 'Agotado/Baja') totalAgotado++;
+    else if (item.estado_operativo === 'Agotado/Baja' || item.estado_operativo === 'Vendido') totalAgotado++;
+
+    // 2. ALERTA DE STOCK INTELIGENTE 🔥
+    // Si tiene serie o es unidad única, NO lo monitoreamos en restock.
+    const tieneSerie = item.serie_fabricante && item.serie_fabricante.trim() !== '';
+    const esUnico = item.unidad_medida === 'UNIDAD' || tieneSerie;
+    const esPropio = !item.es_externo;
+
+    // Filtramos: Solo propios, que NO sean únicos (es decir, repuestos) 
+    // y de paso, ignoramos cualquier basura que tenga la palabra "PRUEBA" en el nombre.
+    if (esPropio && !esUnico && !item.nombre.toUpperCase().includes('PRUEBA')) {
+      const nombreLlave = item.nombre.trim().toUpperCase();
+      
+      if (!stockAgrupado[nombreLlave]) {
+        stockAgrupado[nombreLlave] = {
+          id: item.id,
+          nombre: item.nombre,
+          stock_total: 0
+        };
+      }
+      stockAgrupado[nombreLlave].stock_total += (item.cantidad_stock || 0);
+    }
   });
 
-  const dataEstados = [
-    { name: 'Operativo', value: totalOperativo, color: '#10b981' },
-    { name: 'En Reparación', value: totalTaller, color: '#f59e0b' },
-    { name: 'Agotado/Baja', value: totalAgotado, color: '#ef4444' },
-  ];
+  // Filtramos y ordenamos: Solo los repuestos que sumados den <= 2
+  const listaCriticaReal = Object.values(stockAgrupado)
+    .filter(grupo => grupo.stock_total <= 2)
+    .sort((a, b) => a.stock_total - b.stock_total);
 
-  // --- 2. FILTRADO INTELIGENTE DE STOCK CRÍTICO 🔥 ---
-  // Solo contamos como crítico si:
-  // - NO tiene número de serie (es un consumible/repuesto)
-  // - NO es un equipo externo de cliente
-  const listaCriticaReal = (stockCriticoRaw || []).filter(item => {
-    const esRepuesto = !item.serie_fabricante; // Si no tiene serie, es repuesto
-    const esPropio = !item.es_externo;         // No nos importa el stock de lo que no es nuestro
-    return esRepuesto && esPropio;
-  });
-
-  // --- 3. PROCESAR FLUJO LOGÍSTICO (Sin cambios, ya funciona bien) ---
+  // --- 3. PROCESAR FLUJO LOGÍSTICO ---
   const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
   const flujoMap = {};
   for (let i = 6; i >= 0; i--) {
@@ -48,7 +60,7 @@ const getDashboardData = async () => {
     }
   });
 
-  // --- 4. GARANTÍAS (Sin cambios) ---
+  // --- 4. GARANTÍAS ---
   let garantiasPorVencer = 0;
   const hoy = new Date();
   (garantiasRaw || []).forEach(g => {
@@ -59,20 +71,26 @@ const getDashboardData = async () => {
     }
   });
 
-  // --- 5. FORMATO FINAL ---
+  const dataEstados = [
+    { name: 'Operativo', value: totalOperativo, color: '#10b981' },
+    { name: 'En Reparación', value: totalTaller, color: '#f59e0b' },
+    { name: 'Agotado/Baja', value: totalAgotado, color: '#ef4444' },
+  ];
+
+  // --- 5. ENVIAMOS LA DATA AL FRONTEND ---
   return {
     kpis: {
       stockOperativo: totalOperativo,
       equiposEnTaller: totalTaller,
-      stockCriticoCount: listaCriticaReal.length, // 🔥 Ahora devuelve el número real de repuestos faltantes
+      stockCriticoCount: listaCriticaReal.length, // Número real de insumos por agotarse
       garantiasPorVencer: garantiasPorVencer
     },
     dataFlujo: Object.values(flujoMap),
     dataEstados,
-    stockCriticoList: listaCriticaReal.slice(0, 5).map(item => ({ // Top 5 reales
+    stockCriticoList: listaCriticaReal.slice(0, 5).map(item => ({
       id: item.id,
       nombre: item.nombre,
-      stock: item.cantidad_stock,
+      stock: item.stock_total, 
       min: 2
     }))
   };
