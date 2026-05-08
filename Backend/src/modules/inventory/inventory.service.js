@@ -65,17 +65,14 @@ const registrarEntrada = async (datos) => {
     const nuevoItem = await inventoryRepository.crearItemKardex(datosLimpios);
 
     // B. Registramos el Historial
-      const descripcionHistorial = esExterno
-      ? `Ingreso de equipo de CLIENTE a Taller. Notas: ${datosLimpios.notas_ingreso || 'Ninguna'}`
-      : `Ingreso inicial a BODEGA. Stock inicial: ${stockPorFila} ${unidadTexto}`;
-
-    
-    await inventoryRepository.registrarHistorial(
-      nuevoItem.id,                 
-      esExterno ? 'INGRESO_TALLER' : 'INGRESO_SISTEMA',            
-      descripcionHistorial,         
-      datos.creadoPor || 'Sistema' 
-    );
+    if (!esExterno) {
+      await inventoryRepository.registrarHistorial(
+        nuevoItem.id,                
+        'INGRESO_SISTEMA',            
+        `Ingreso inicial a BODEGA. Stock inicial: ${stockPorFila} ${unidadTexto}`,        
+        datos.creadoPor || 'Sistema' 
+      );
+    }
 
     // C. Log Logístico (Usamos el repo directo para NO duplicar el stock en movements.service)
     await inventoryRepository.registrarMovimiento({
