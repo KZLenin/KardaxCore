@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, FileText, Tag, Trash2, CheckCircle, ShieldCheck, DollarSign, ScanBarcode, Building2, MapPin } from 'lucide-react';
+import { ShoppingCart, FileText, Tag, Trash2, CheckCircle, ShieldCheck, DollarSign, ScanBarcode, Building2, MapPin, Calculator } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,12 +7,12 @@ import { useToast } from "@/hooks/use-toast";
 
 import { salesService } from '../services/salesService'; 
 import { inventoryService } from '../../inventory/services/inventoryService'; 
-import { clientService } from '../../clients/services/clientService'; // 🔥 Importamos el servicio de clientes
+import { clientService } from '../../clients/services/clientService'; 
 
 const B2BSalesTerminal = () => {
   const { toast } = useToast();
   
-  // 1. Estados de la Cabecera Comercial (NUEVOS: Empresa y Sucursal)
+  // 1. Estados de la Cabecera Comercial
   const [empresas, setEmpresas] = useState([]);
   const [sucursales, setSucursales] = useState([]);
   const [empresaId, setEmpresaId] = useState("");
@@ -28,11 +28,10 @@ const B2BSalesTerminal = () => {
   const [carrito, setCarrito] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 🔥 3. Cargar inventario y empresas al montar el componente
+  // 3. Cargar inventario y empresas al montar el componente
   useEffect(() => {
     const cargarDatosIniciales = async () => {
       try {
-        // Ejecutamos ambas peticiones al mismo tiempo para que cargue más rápido
         const [invData, empData] = await Promise.all([
           inventoryService.getAll({}),
           clientService.obtenerEmpresas()
@@ -48,7 +47,7 @@ const B2BSalesTerminal = () => {
     cargarDatosIniciales();
   }, []);
 
-  // 🔥 4. Cargar sucursales cada vez que se selecciona una empresa
+  // 4. Cargar sucursales cada vez que se selecciona una empresa
   useEffect(() => {
     if (empresaId) {
       const cargarSucursales = async () => {
@@ -56,12 +55,11 @@ const B2BSalesTerminal = () => {
           const data = await clientService.obtenerSucursalesPorEmpresa(empresaId);
           setSucursales(data);
           
-          // Auto-seleccionar la matriz si existe
           const matriz = data.find(s => s.es_matriz);
           if (matriz) {
             setSucursalId(matriz.id);
           } else if (data.length > 0) {
-            setSucursalId(data[0].id); // Si no hay matriz, selecciona la primera
+            setSucursalId(data[0].id); 
           } else {
             setSucursalId("");
           }
@@ -103,12 +101,9 @@ const B2BSalesTerminal = () => {
   const procesarIngresoAlCarrito = (producto) => {
     setCarrito(prevCarrito => {
       const itemExistente = prevCarrito.find(item => item.itemId === producto.id);
-      
-      // BLINDAJE RESTAURADO: Detectamos si es unidad desde la base de datos
       const esUnidad = String(producto.unidad_medida || producto.unidad || '').toUpperCase() === 'UNIDAD';
 
       if (itemExistente) {
-        // Si ya existe y es unidad, no dejamos sumar más
         if (esUnidad) {
           toast({ title: "Acción Bloqueada", description: `No puedes vender más de 1 unidad del mismo equipo (${producto.nombre}).`, variant: "destructive" });
           return prevCarrito;
@@ -162,17 +157,21 @@ const B2BSalesTerminal = () => {
     setCarrito(carrito.filter(item => item.itemId !== itemId));
   };
 
-  const calcularTotal = carrito.reduce ((total, item) => {
-    const cantidad = Number(item.cantidad) || 0; // Si está vacío, asume 0 para no romper la suma
+  // 🔥 CÁLCULOS FINANCIEROS (Subtotal, IVA, Total)
+  const calcularSubtotal = carrito.reduce ((total, item) => {
+    const cantidad = Number(item.cantidad) || 0;
     const precio = Number(item.precioUnitario) || 0;
     return total + (cantidad * precio);
   }, 0);
 
+  const porcentajeIva = 15; // Podrías hacerlo variable en el futuro
+  const calculoIva = calcularSubtotal * (porcentajeIva / 100);
+  const calcularTotalFinal = calcularSubtotal + calculoIva;
+
   // --- ENVÍO AL BACKEND ---
   const procesarVenta = async () => {
-    // 🚨 Validaciones
-    if (!empresaId || !sucursalId) {
-      return toast({ title: "Error", description: "Debes seleccionar la Empresa y la Sede de entrega.", variant: "destructive" });
+    if (!empresaId) {
+      return toast({ title: "Error", description: "Debes seleccionar la Empresa.", variant: "destructive" });
     }
     
     if (carrito.length === 0) {
@@ -181,15 +180,15 @@ const B2BSalesTerminal = () => {
 
     const preciosEnCero = carrito.some(item => item.precioUnitario <= 0);
     if (preciosEnCero) {
-      return toast({ title: "Error", description: "Hay equipos con precio $0 en el carrito.", variant: "destructive" });
+      return toast({ title: "Advertencia", description: "Hay equipos con precio $0 en el carrito.", variant: "destructive" });
     }
 
     setIsSubmitting(true);
     
     try {
       const payload = {
-        empresaId,   // 🔥 Enviamos el ID de la empresa
-        sucursalId,  // 🔥 Enviamos el ID de la sede
+        empresaId,  
+        sucursalId: sucursalId || null, // Opcional si no tiene sucursales
         numeroComprobante,
         poCliente,
         notasAdicionales: notas,
@@ -203,14 +202,14 @@ const B2BSalesTerminal = () => {
 
       await salesService.registrarVenta(payload);
       
-      toast({ title: "¡Venta Exitosa!", description: "Stock descontado e historial de Kardex guardado." });
+      toast({ title: "¡Venta Exitosa!", description: "Stock descontado y factura generada." });
       
       // Limpiar terminal
       setEmpresaId(''); setSucursalId(''); setNumeroComprobante(''); setPoCliente(''); setNotas(''); setCarrito([]);
       
     } catch (error) {
       console.error("Error en Venta:", error);
-      toast({ title: "Error en Venta", description: error.message, variant: "destructive" });
+      toast({ title: "Error en Venta", description: error.message || error, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -232,11 +231,9 @@ const B2BSalesTerminal = () => {
           </h3>
           
           <div className="space-y-4">
-            
-            {/* 🔥 NUEVO: SELECTOR DE EMPRESA */}
             <div>
               <label className="text-xs font-semibold text-zinc-500 uppercase flex items-center gap-1 mb-1">
-                <Building2 className="w-3 h-3"/> Empresa (RUC) *
+                <Building2 className="w-3 h-3"/> Empresa (Cliente) *
               </label>
               <Select value={empresaId} onValueChange={setEmpresaId}>
                 <SelectTrigger className="w-full">
@@ -254,10 +251,9 @@ const B2BSalesTerminal = () => {
               </Select>
             </div>
 
-            {/* 🔥 NUEVO: SELECTOR DE SUCURSAL */}
             <div>
               <label className="text-xs font-semibold text-zinc-500 uppercase flex items-center gap-1 mb-1">
-                <MapPin className="w-3 h-3"/> Sede de Entrega *
+                <MapPin className="w-3 h-3"/> Sede de Entrega
               </label>
               <Select value={sucursalId} onValueChange={setSucursalId} disabled={!empresaId}>
                 <SelectTrigger className="w-full">
@@ -279,9 +275,9 @@ const B2BSalesTerminal = () => {
             
             <div>
               <label className="text-xs font-semibold text-zinc-500 uppercase flex items-center gap-1 mb-1">
-                <FileText className="w-3 h-3"/> Nro. Factura / Recibo
+                <FileText className="w-3 h-3"/> Nro. Cotización / Guía
               </label>
-              <Input placeholder="Ej. FAC-00123" value={numeroComprobante} onChange={(e) => setNumeroComprobante(e.target.value)} />
+              <Input placeholder="Ej. COT-00123" value={numeroComprobante} onChange={(e) => setNumeroComprobante(e.target.value)} />
             </div>
 
             <div>
@@ -324,7 +320,6 @@ const B2BSalesTerminal = () => {
                     Agregar
                   </Button>
                 </div>
-                <p className="text-[10px] text-zinc-400 mt-1">Dispara la pistola, presiona Enter, o haz clic en Agregar.</p>
               </div>
             </div>
           </div>
@@ -359,7 +354,7 @@ const B2BSalesTerminal = () => {
                               type="number" 
                               min="1" 
                               max={esUnidad ? 1 : item.stockMaximo} 
-                              value={item.cantidad === 0 ? '' : item.cantidadd} 
+                              value={item.cantidad === 0 ? '' : item.cantidad} 
                               onChange={(e) => {const valor = e.target.value;  actualizarItemCarrito(item.itemId, 'cantidad', valor === '' ? '' : Number(valor))}} 
                               className={`h-8 w-full text-center ${esUnidad ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed focus-visible:ring-0' : ''}`}
                               readOnly={esUnidad}
@@ -394,27 +389,44 @@ const B2BSalesTerminal = () => {
               </table>
             </div>
             
-            <div className="bg-zinc-900 text-white p-4 flex items-center justify-between">
-              <div className="text-zinc-400 text-sm">
-                Total ítems: <span className="text-white font-bold">{carrito.length}</span>
-              </div>
-              <div className="flex items-center gap-6">
-                <div className="text-right">
-                  <p className="text-zinc-400 text-xs uppercase font-bold tracking-wider mb-1">Total a Cobrar</p>
-                  <p className="text-2xl font-mono font-bold">${calcularTotal.toFixed(2)}</p>
+            {/* 🔥 DESGLOSE FINANCIERO */}
+            <div className="bg-zinc-50 border-t border-zinc-200 p-4">
+              <div className="flex justify-end">
+                <div className="w-64 space-y-2">
+                  <div className="flex justify-between text-sm text-zinc-600">
+                    <span>Subtotal:</span>
+                    <span className="font-mono">${calcularSubtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-zinc-600">
+                    <span>IVA ({porcentajeIva}%):</span>
+                    <span className="font-mono">${calculoIva.toFixed(2)}</span>
+                  </div>
+                  <div className="border-t border-zinc-200 pt-2 flex justify-between items-center mt-2">
+                    <span className="text-zinc-900 font-bold uppercase text-xs tracking-wider">Total Final:</span>
+                    <span className="text-xl font-mono font-bold text-zinc-900">${calcularTotalFinal.toFixed(2)}</span>
+                  </div>
                 </div>
+              </div>
+            </div>
+
+            {/* BARRA DE ACCIÓN FINAL */}
+            <div className="bg-zinc-900 text-white p-4 flex items-center justify-between">
+              <div className="text-zinc-400 text-sm flex items-center gap-2">
+                <Calculator className="w-4 h-4"/>
+                Ítems: <span className="text-white font-bold">{carrito.length}</span>
+              </div>
+              <div className="flex items-center gap-4">
                 <Button 
                   onClick={procesarVenta} 
                   disabled={carrito.length === 0 || isSubmitting}
-                  className="bg-blue-600 hover:bg-blue-500 text-white h-12 px-6 shadow-lg shadow-blue-900/20"
+                  className="bg-blue-600 hover:bg-blue-500 text-white h-12 px-8 shadow-lg shadow-blue-900/20 text-md"
                 >
-                  <CheckCircle className="w-5 h-5 mr-2" />
-                  {isSubmitting ? 'Procesando...' : 'Completar Venta'}
+                  {isSubmitting ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Procesando...</> : <><CheckCircle className="w-5 h-5 mr-2" /> Cobrar y Facturar</>}
                 </Button>
               </div>
             </div>
-          </div>
 
+          </div>
         </div>
       </div>
     </div>

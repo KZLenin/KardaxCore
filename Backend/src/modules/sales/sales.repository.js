@@ -113,4 +113,17 @@ const obtenerDetalleSucursal = async (sucursalId) => {
   return data; // Aquí devolvemos el objeto porque el service usa detalleSucursal.nombre_sucursal
 };
 
-module.exports = { crearCabeceraVenta, crearDetallesVenta, getHistorial, obtenerDetalleVenta, obtenerNombreEmpresa, obtenerDetalleSucursal };
+const obtenerDataClienteCompleta = async (empresaId) => {
+  const { data, error } = await supabase
+    .from('clientes_empresas')
+    .select('id, nombre_comercial, razon_social, identificacion, tipo_identificacion, email_facturacion, direccion_principal')
+    .eq('id', empresaId)
+    .single();
+  
+  if (error) return null;
+  return data;
+};
+
+
+module.exports = { crearCabeceraVenta, crearDetallesVenta, 
+  getHistorial, obtenerDetalleVenta, obtenerNombreEmpresa, obtenerDetalleSucursal, obtenerDataClienteCompleta };
