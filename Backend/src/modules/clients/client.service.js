@@ -8,14 +8,32 @@ const listarEmpresas = async () => {
 };
 
 const registrarEmpresa = async (datosFront) => {
+  // 🔥 Validaciones estrictas para facturación SRI
   if (!datosFront.nombre_empresa) {
-    throw new Error('El nombre de la empresa es obligatorio.');
+    throw new Error('El nombre comercial de la empresa es obligatorio.');
+  }
+  if (!datosFront.identificacion) {
+    throw new Error('La identificación (RUC/Cédula) es obligatoria para facturación.');
   }
 
   const empresaData = {
     nombre_comercial: datosFront.nombre_empresa.trim().toUpperCase(),
-    razon_social: datosFront.ruc_razon_social ? datosFront.ruc_razon_social.trim() : null,
-    ruc: datosFront.ruc ? datosFront.ruc.trim() : null,
+    razon_social: datosFront.razon_social ? datosFront.razon_social.trim().toUpperCase() : null,
+    
+    // Datos SRI
+    tipo_identificacion: datosFront.tipo_identificacion || 'RUC',
+    identificacion: datosFront.identificacion.trim(),
+    direccion_principal: datosFront.direccion_principal ? datosFront.direccion_principal.trim() : null,
+    email_facturacion: datosFront.email_facturacion ? datosFront.email_facturacion.trim().toLowerCase() : null,
+    telefono: datosFront.telefono ? datosFront.telefono.trim() : null,
+    tipo_contribuyente: datosFront.tipo_contribuyente || 'Régimen General',
+    
+    // Datos Comerciales
+    categoria: datosFront.categoria || 'Cliente Final',
+    nombre_contacto: datosFront.nombre_contacto ? datosFront.nombre_contacto.trim() : null,
+    limite_credito: datosFront.limite_credito ? Number(datosFront.limite_credito) : 0,
+    dias_credito: datosFront.dias_credito ? Number(datosFront.dias_credito) : 0,
+    
     estado: 'ACTIVO'
   };
 
@@ -25,11 +43,24 @@ const registrarEmpresa = async (datosFront) => {
 const actualizarEmpresa = async (id, datosFront) => {
   if (!id) throw new Error("ID de la empresa es requerido");
 
+  // Construimos el objeto dinámicamente para actualizar solo lo que envíe el frontend
   const empresaData = {
     nombre_comercial: datosFront.nombre_empresa?.trim().toUpperCase(),
-    razon_social: datosFront.ruc_razon_social?.trim() || null,
-    ruc: datosFront.ruc?.trim() || null,
+    razon_social: datosFront.razon_social?.trim().toUpperCase() || null,
+    tipo_identificacion: datosFront.tipo_identificacion || null,
+    identificacion: datosFront.identificacion?.trim() || null,
+    direccion_principal: datosFront.direccion_principal?.trim() || null,
+    email_facturacion: datosFront.email_facturacion?.trim().toLowerCase() || null,
+    telefono: datosFront.telefono?.trim() || null,
+    tipo_contribuyente: datosFront.tipo_contribuyente || null,
+    categoria: datosFront.categoria || null,
+    nombre_contacto: datosFront.nombre_contacto?.trim() || null,
+    limite_credito: datosFront.limite_credito !== undefined ? Number(datosFront.limite_credito) : undefined,
+    dias_credito: datosFront.dias_credito !== undefined ? Number(datosFront.dias_credito) : undefined,
   };
+
+  // Limpiamos los campos undefined para que Supabase no se queje
+  Object.keys(empresaData).forEach(key => empresaData[key] === undefined && delete empresaData[key]);
 
   return await repository.actualizarEmpresa(id, empresaData);
 };
