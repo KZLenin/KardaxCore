@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { LayoutDashboard, Package, ArrowLeftRight, Settings, Menu, LogOut, Wrench, Users, MapPin, ShoppingCart,Briefcase } from 'lucide-react';
+import { LayoutDashboard, Package, ArrowLeftRight, Settings, Menu, LogOut, Wrench, Users, MapPin, ShoppingCart,Briefcase, Landmark } from 'lucide-react';
 
 const MainLayout = () => {
   const { user, clearAuth } = useAuthStore();
@@ -20,6 +20,7 @@ const MainLayout = () => {
     { name: 'Mantenimiento', href: '/maintenance', icon: Wrench },
     { name: 'Usuarios', href: '/users', icon: Users },
     { name: 'Ubicaciones', href: '/locations', icon: MapPin },
+    { name: 'Finanzas', href: '/finances', icon: Landmark },
     { name: 'Configuración', href: '/settings', icon: Settings },
     
   ];
