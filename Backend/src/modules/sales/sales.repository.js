@@ -54,13 +54,8 @@ const getHistorial = async (buscarTerm) => {
     .from('ventas')
     .select(`
       *,
-      empresa:clientes_empresas (nombre_comercial, ruc),
-      sucursal:clientes_sucursales (
-        nombre_sucursal, 
-        direccion, 
-        contacto_nombre, 
-        telefono
-      ),
+      empresa:clientes_empresas (*),
+      sucursal:clientes_sucursales (*),
       items:ventas_detalle (
         cantidad,
         precio_unitario,
@@ -73,7 +68,7 @@ const getHistorial = async (buscarTerm) => {
 
   if (error) throw new Error(`Error BD Detalles Venta: ${error.message}`);
 
-  // Mapeo seguro usando solo las columnas que SI existen en tu BDD
+  // Mapeo seguro: El PDF espera una variable "ruc", así que le pasamos el campo "identificacion"
   return {
     ...data,
     empresa_nombre: data.empresa?.nombre_comercial || data.cliente_nombre || 'N/A',
@@ -81,7 +76,7 @@ const getHistorial = async (buscarTerm) => {
     direccion_envio: data.sucursal?.direccion || 'Dirección no registrada',
     contacto_nombre: data.sucursal?.contacto_nombre || 'S/N',
     contacto_telefono: data.sucursal?.telefono || 'S/N',
-    ruc: data.empresa?.ruc || '',
+    ruc: data.empresa?.identificacion || '', // 🔥 AQUÍ ESTÁ LA MAGIA PARA SALVAR EL PDF
     items: data.items.map(i => ({
       item_nombre: i.item?.nombre || 'Equipo desconocido',
       codigo: i.item?.codigo_barras || 'S/C',
