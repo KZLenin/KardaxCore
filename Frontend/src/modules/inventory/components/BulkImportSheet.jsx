@@ -20,6 +20,9 @@ const BulkImportSheet = ({ isOpen, setIsOpen, categorias, sedes, onImportSuccess
 
   const [categoriaPadreSeleccionada, setCategoriaPadreSeleccionada] = useState("");
 
+  const [paginaActual, setPaginaActual] = useState(0);
+  const ITEMS_POR_PAGINA = 20;
+
   // Al abrir el modal, tomamos la data fresca y segura de InventoryView
   useEffect(() => {
     if (isOpen) {
@@ -136,6 +139,12 @@ const BulkImportSheet = ({ isOpen, setIsOpen, categorias, sedes, onImportSuccess
 
   const hayConflictos = faltantes.sedes.length > 0 || faltantes.categorias.length > 0;
 
+  // 🔥 LÓGICA DE PAGINACIÓN
+  const totalPaginas = Math.ceil(datosPrevia.length / ITEMS_POR_PAGINA);
+  const inicioPaginacion = paginaActual * ITEMS_POR_PAGINA;
+  const finPaginacion = inicioPaginacion + ITEMS_POR_PAGINA;
+  const datosMostrados = datosPrevia.slice(inicioPaginacion, finPaginacion);
+  
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto bg-slate-50 border-l border-zinc-200 p-0 flex flex-col">
@@ -221,21 +230,53 @@ const BulkImportSheet = ({ isOpen, setIsOpen, categorias, sedes, onImportSuccess
                         <th className="px-3 py-2 font-bold text-zinc-700">Categoría</th>
                         <th className="px-3 py-2 font-bold text-zinc-700">Sede</th>
                         <th className="px-3 py-2 font-bold text-zinc-700 text-center">Cant.</th>
+                        <th className="px-3 py-2 font-bold text-zinc-700 text-center">Unidad</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
-                      {/* Subimos el slice a 20 para que vean más ítems ;) */}
-                      {datosPrevia.slice(0, 20).map((item, idx) => (
+                      {/* 🔥 Ahora iteramos sobre la porción calculada (datosMostrados) */}
+                      {datosMostrados.map((item, idx) => (
                         <tr key={idx} className="hover:bg-zinc-50/50">
                           <td className="px-3 py-2 font-medium text-zinc-900">{item.nombre}</td>
-                          {/* 🔥 Dato nuevo pintado */}
                           <td className="px-3 py-2 text-zinc-600 text-[10px]">{item.categoriaNombre}</td>
                           <td className="px-3 py-2 text-zinc-500 italic">{item.sedeNombre}</td>
                           <td className="px-3 py-2 text-center font-bold text-zinc-700">{item.cantidad}</td>
+                          <td className="px-3 py-2 text-center">
+                            <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-semibold text-[9px] uppercase">
+                              {item.unidadMedida || 'CAJA'}
+                            </span>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
+                </div>
+                {/* 🔥 CONTROLES DE PAGINACIÓN */}
+                <div className="bg-zinc-50 border-t border-zinc-200 px-4 py-2 flex items-center justify-between">
+                  <span className="text-[10px] font-medium text-zinc-500 uppercase">
+                    Mostrando {inicioPaginacion + 1} - {Math.min(finPaginacion, datosPrevia.length)} de {datosPrevia.length}
+                  </span>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="h-6 text-[10px] px-2 bg-white"
+                      onClick={() => setPaginaActual(p => Math.max(0, p - 1))}
+                      disabled={paginaActual === 0}
+                    >
+                      Anterior
+                    </Button>
+                    <span className="text-[10px] font-bold text-zinc-700 flex items-center">
+                      Pág. {paginaActual + 1} / {totalPaginas}
+                    </span>
+                    <Button 
+                      variant="outline" 
+                      className="h-6 text-[10px] px-2 bg-white"
+                      onClick={() => setPaginaActual(p => Math.min(totalPaginas - 1, p + 1))}
+                      disabled={paginaActual >= totalPaginas - 1}
+                    >
+                      Siguiente
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
