@@ -162,12 +162,31 @@ export const inventoryService = {
 
 imprimirEtiquetasMasivas: async (idsArray) => {
   try {
-    // Es clave el responseType: 'blob' para que no se corrompa el PDF
+    if (!idsArray || idsArray.length === 0) {
+      throw new Error("No hay elementos seleccionados para imprimir.");
+    }
+
+    // 1. Le decimos a Axios que espere hasta 60 segundos (60000 ms) 
+    // o ponle 0 si quieres que espere infinitamente.
     const response = await httpClient.post('/inventory/etiquetas/masivo', { ids: idsArray }, {
-      responseType: 'blob' 
+      responseType: 'blob',
+      timeout: 60000 // 🔥 AQUÍ ESTÁ LA MAGIA: 60 segundos de paciencia
     });
-    return response.data;
+
+    // 2. Empaquetamos y abrimos
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const pdfUrl = window.URL.createObjectURL(blob);
+    window.open(pdfUrl, '_blank');
+
+    setTimeout(() => window.URL.revokeObjectURL(pdfUrl), 60000);
+
+    return true; 
   } catch (error) {
+    console.error("❌ Error al imprimir:", error);
+    // Un mensajito más amigable si de verdad se tarda demasiado
+    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      throw 'El servidor está procesando demasiadas etiquetas y tomó más tiempo del esperado. Intenta con un lote un poco más pequeño.';
+    }
     throw error.response?.data?.error || 'Error al descargar las etiquetas';
   }
 },

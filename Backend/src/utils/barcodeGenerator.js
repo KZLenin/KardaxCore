@@ -61,56 +61,86 @@ const generarPdfEtiquetas = async (codigo, nombreEquipo, cantidad) => {
 const generarPdfEtiquetasMasivo = async (equipos) => {
   return new Promise(async (resolve, reject) => {
     try {
-      // 1. Configuramos el tamaño de la etiqueta (50x25mm aprox / 144x72pt)
+      if (!equipos || equipos.length === 0) {
+        console.error("❌ [BACKEND] Error: El array de equipos llegó vacío.");
+        return reject(new Error("No hay equipos para generar etiquetas"));
+      }
+
       const doc = new PDFDocument({
         size: [144, 72],
-        margins: { top: 2, bottom: 2, left: 5, right: 5 }
+        margins: { top: 2, bottom: 2, left: 5, right: 5 },
+        compress: true 
       });
 
       const buffers = [];
-      doc.on('data', buffers.push.bind(buffers));
-      doc.on('end', () => resolve(Buffer.concat(buffers)));
+      doc.on('data', (chunk) => buffers.push(chunk));
+      doc.on('end', () => {
+        const pdfFinal = Buffer.concat(buffers);
+        resolve(pdfFinal);
+      });
 
-      // 2. Iteramos sobre el array de equipos seleccionados
-      for (let i = 0; i < equipos.length; i++) {
-        const { codigo, nombreEquipo } = equipos[i];
+      const TAMANO_LOTE = 25; 
+      let esPrimeraPagina = true;
+      let contadorEtiquetasExitosas = 0;
 
-        // Generamos el buffer de imagen para el código actual
-        const barcodeBuffer = await bwipjs.toBuffer({
-          bcid: 'code128',
-          text: codigo,
-          scale: 3,
-          height: 12,
-          includetext: false,
+      for (let i = 0; i < equipos.length; i += TAMANO_LOTE) {
+        const loteActual = equipos.slice(i, i + TAMANO_LOTE);
+        // Generar barras del lote actual
+        const promesasLote = loteActual.map(async (eq, indexInterno) => {
+          try {
+            if (!eq.codigo) {
+              console.warn(`⚠️ [BACKEND] Ítem [${i + indexInterno}] ("${eq.nombreEquipo}") no tiene código. Saltando código de barras.`);
+              return { ...eq, barcodeBuffer: null };
+            }
+
+            const buffer = await bwipjs.toBuffer({
+              bcid: 'code128',
+              text: eq.codigo.toString(),
+              scale: 2,
+              height: 12,
+              includetext: false,
+            });
+            return { ...eq, barcodeBuffer: buffer };
+          } catch (err) {
+            console.error(`🚨 [BACKEND] Error en bwipjs para código [${eq.codigo}] del equipo [${eq.nombreEquipo}]:`, err.message);
+            return { ...eq, barcodeBuffer: null };
+          }
         });
 
-        // Si no es la primera etiqueta, saltamos a una nueva página física
-        if (i > 0) doc.addPage();
+        const equiposProcesadosLote = await Promise.all(promesasLote);
 
-        // --- ENCABEZADO GYMTECH (Misma posición que tu original) ---
-        doc.fontSize(8)
-           .font('Times-Bold')
-           .text("GymTech", 5, 5, { align: 'left', width: 144 });
 
-        // --- NOMBRE DEL EQUIPO ---
-        doc.fontSize(7)
-           .font('Helvetica-Bold')
-           .text(nombreEquipo.substring(0, 35).toUpperCase(), 0, 16, { align: 'center', width: 144 });
+        // Pintar lote actual
+        for (const eq of equiposProcesadosLote) {
+          if (!esPrimeraPagina) {
+            doc.addPage();
+          } else {
+            esPrimeraPagina = false;
+          }
 
-        // --- IMAGEN DEL CÓDIGO DE BARRAS ---
-        doc.image(barcodeBuffer, 5, 25, { fit: [134, 35], align: 'center' });
+          doc.fontSize(8).font('Times-Bold').text("GymTech", 5, 5, { align: 'left', width: 144 });
 
-        // --- CÓDIGO EN LETRAS ---
-        doc.fontSize(8)
-           .font('Courier-Bold')
-           .text(codigo, 0, 58, { align: 'center', width: 144 });
+          const nombreLimpio = (eq.nombreEquipo || 'SIN NOMBRE').toString().toUpperCase();
+          doc.fontSize(7).font('Helvetica-Bold').text(nombreLimpio.substring(0, 35), 0, 16, { align: 'center', width: 144 });
+
+          if (eq.barcodeBuffer) {
+            doc.image(eq.barcodeBuffer, 5, 25, { fit: [134, 35], align: 'center' });
+            contadorEtiquetasExitosas++;
+          } else {
+            doc.fontSize(6).text("[ERROR EN CÓDIGO]", 0, 30, { align: 'center', width: 144 });
+          }
+
+          doc.fontSize(8).font('Courier-Bold').text(eq.codigo || 'S/C', 0, 58, { align: 'center', width: 144 });
+        }
+
+        // Limpieza de memoria del lote
+        equiposProcesadosLote.forEach(eq => { if(eq.barcodeBuffer) eq.barcodeBuffer = null; });
       }
 
-      // 3. Finalizamos el documento
       doc.end();
 
     } catch (error) {
-      console.error("Error generando lote de etiquetas:", error);
+      console.error("\n💥 [BACKEND] CRASH CRÍTICO DENTRO DE GENERAR PDF MASIVO:", error);
       reject(error);
     }
   });

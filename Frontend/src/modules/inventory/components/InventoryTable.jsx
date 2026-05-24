@@ -181,19 +181,16 @@ const handleSelectItem = (id) => {
 const handleBulkPrint = async () => {
   try {
     setIsPrinting(true);
-    const blob = await inventoryService.imprimirEtiquetasMasivas(selectedItems);
     
-    // Si no le ponemos el tipo, lo va a descargar igual por precaución.
-    const file = new Blob([blob], { type: 'application/pdf' });
-    const url = window.URL.createObjectURL(file);
+    // 1. Solo llamamos al servicio. 
+    // ¡El servicio ya se encarga de empaquetar y abrir la pestaña solita!
+    await inventoryService.imprimirEtiquetasMasivas(selectedItems);
     
-    // Abrimos la pestaña nueva con el PDF
-    window.open(url, '_blank');
-    
-    // Opcional: Limpiamos los checkboxes después de mandar a imprimir
+    // 2. Limpiamos los checkboxes después de mandar a imprimir
     setSelectedItems([]);
+    
   } catch (error) {
-    alert("Error al imprimir masivamente: " + error);
+    alert("Error al imprimir masivamente: " + (error.message || error));
   } finally {
     setIsPrinting(false);
   }

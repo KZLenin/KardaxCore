@@ -124,7 +124,7 @@ const descargarEtiquetas = async (req, res) => {
 
     // 3. Le decimos al navegador: "¡Oye, prepárate que te envío un archivo PDF!"
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=etiquetas_${equipo.codigo_barras}.pdf`);
+    res.setHeader('Content-Disposition', `inline; filename="etiquetas_lote_${Date.now()}.pdf"`);
     
     // 4. Enviamos el archivo crudo
     res.send(pdfBuffer);
@@ -162,21 +162,24 @@ const getSedes = async (req, res) => {
 
 const descargarEtiquetasMasivas = async (req, res) => {
   try {
-    const { ids } = req.body; 
+    // 💡 CLAVE: Validamos si los IDs vienen por URL (query) o por el cuerpo (body)
+    const origenIds = req.query.ids || req.body.ids; 
     
-    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    if (!origenIds || origenIds.length === 0) {
       return res.status(400).json({ error: 'No se enviaron equipos para imprimir' });
     }
 
+    // 🔄 Si vienen por URL como string ("16,18,24..."), los convertimos en un Array []
+    const ids = typeof origenIds === 'string' ? origenIds.split(',') : origenIds;
+
     const equiposValidos = [];
 
-    // 🔥 FIX: Bucle seguro. Si un equipo falla (ej. no tiene código), el "catch" interno 
-    // lo atrapa en silencio y el bucle sigue con el próximo equipo sin tumbar el servidor.
+    // Bucle seguro para obtener los datos de la base de datos
     for (const id of ids) {
       try {
+        if (!id) continue;
         const equipo = await inventoryService.obtenerEquipoPorId(id);
         
-        // Mapeamos los datos con los nombres EXACTOS que espera el motor PDF
         if (equipo && equipo.codigo_barras) {
           equiposValidos.push({
             codigo: equipo.codigo_barras,
@@ -184,24 +187,25 @@ const descargarEtiquetasMasivas = async (req, res) => {
           });
         }
       } catch (itemError) {
-        // Solo avisamos por consola interna, pero NO detenemos la impresión de los demás
         console.log(`⚠️ Equipo omitido en lote (ID: ${id}): ${itemError.message}`);
       }
     }
 
-    // Si después de revisar todos, resulta que NINGUNO tenía código de barras:
     if (equiposValidos.length === 0) {
       return res.status(400).json({ 
         error: 'Ninguno de los equipos seleccionados tiene un código de barras asignado para imprimir.' 
       });
     }
 
-    // 3. Llamamos al motor V8 con los que sí sobrevivieron
+    // Llamamos al generador optimizado por lotes de 25 que ya reparamos antes
     const pdfBuffer = await generarPdfEtiquetasMasivo(equiposValidos);
 
-    // 4. Enviamos el PDF
+    // 📄 Respondemos con las cabeceras correctas de PDF
     res.setHeader('Content-Type', 'application/pdf');
+    
+    // Cambiamos a 'attachment' para que el navegador lo fuerce como descarga nativa en Chrome
     res.setHeader('Content-Disposition', `inline; filename="etiquetas_lote_${Date.now()}.pdf"`);
+    
     res.send(pdfBuffer);
 
   } catch (error) {

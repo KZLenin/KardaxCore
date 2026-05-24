@@ -26,6 +26,7 @@ router.get('/proveedores', protegerRuta, inventoryController.getProveedores);
 router.get('/', protegerRuta, inventoryController.getInventario);
 router.get('/:id/historial', protegerRuta, inventoryController.getHistorial);
 router.get('/:id/etiquetas', protegerRuta, inventoryController.descargarEtiquetas);
+router.get('/etiquetas/masivo', inventoryController.descargarEtiquetasMasivas);
 router.get('/sedes', protegerRuta, inventoryController.getSedes);
 router.get('/imagenes/galeria', protegerRuta, inventoryController.getGaleriaImagenes);
 
