@@ -18,6 +18,8 @@ const BulkImportSheet = ({ isOpen, setIsOpen, categorias, sedes, onImportSuccess
   const [faltantes, setFaltantes] = useState({ sedes: [], categorias: [] });
   const [isResolviendo, setIsResolviendo] = useState(false);
 
+  const [categoriaPadreSeleccionada, setCategoriaPadreSeleccionada] = useState("");
+
   // Al abrir el modal, tomamos la data fresca y segura de InventoryView
   useEffect(() => {
     if (isOpen) {
@@ -64,7 +66,8 @@ const BulkImportSheet = ({ isOpen, setIsOpen, categorias, sedes, onImportSuccess
           serie: fila.Serie || fila.serie || '',
           cantidad: fila['STOCK'] || fila.STOCK || fila.Cantidad || fila.cantidad || 0,
           sedeNombre: fila['UBICACIÓN'] || fila.UBICACIÓN || fila.Sede || fila.sede || '', 
-          categoriaNombre: fila['CATEGORÍA'] || fila.CATEGORÍA || fila.Categoria || fila.categoria || ''
+          categoriaNombre: fila['CATEGORÍA'] || fila.CATEGORÍA || fila.Categoria || fila.categoria || '',
+          unidadMedida: fila['UNIDAD'] || fila.UNIDAD || fila.Unidad || fila.unidad || 'CAJA'
         }));
 
         setDatosPrevia(formateados);
@@ -79,9 +82,14 @@ const BulkImportSheet = ({ isOpen, setIsOpen, categorias, sedes, onImportSuccess
   const resolverFaltantes = async () => {
     setIsResolviendo(true);
     try {
-      // Mandamos a crear usando inventoryService (Asegúrate de que este endpoint exista en tu React)
+      // Mandamos a crear usando inventoryService 
       for (const catNombre of faltantes.categorias) {
-        await inventoryService.crearCategoria?.({ nombre: catNombre, prefijo: catNombre.substring(0,3) });
+        await inventoryService.crearCategoria({ 
+          nombre: catNombre, 
+          prefijo: catNombre.substring(0,3).toUpperCase(),
+          // 🔥 Si eligió un padre, lo mandamos. Si no, se va como null (Principal)
+          categoriaPadreId: categoriaPadreSeleccionada || null 
+        });
       }
       
       // Actualizamos los catálogos volviéndolos a pedir
@@ -122,6 +130,7 @@ const BulkImportSheet = ({ isOpen, setIsOpen, categorias, sedes, onImportSuccess
     setDatosPrevia([]);
     setNombreArchivo("");
     setFaltantes({ sedes: [], categorias: [] });
+    setCategoriaPadreSeleccionada("");
     setIsOpen(false);
   };
 
@@ -152,21 +161,42 @@ const BulkImportSheet = ({ isOpen, setIsOpen, categorias, sedes, onImportSuccess
              <input type="file" accept=".xlsx, .xls, .csv" onChange={manejarArchivo} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
           </div>
 
+          {/* 🚨 ALERTA DE CONFLICTOS Y SELECTOR DE SUBCATEGORÍA */}
           {hayConflictos && (
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
                 <div>
                   <p className="text-sm font-bold text-amber-900">Nuevos registros detectados</p>
-                  <p className="text-xs text-amber-700">El Excel menciona datos que no existen en el sistema. ¿Deseas crearlos ahora?</p>
+                  <p className="text-xs text-amber-700">El Excel menciona datos que no existen en el sistema.</p>
                 </div>
               </div>
               <ul className="text-xs text-amber-800 list-disc pl-8 font-medium">
                 {faltantes.sedes.map(s => <li key={s}>Sede: <span className="underline">{s}</span></li>)}
                 {faltantes.categorias.map(c => <li key={c}>Categoría: <span className="underline">{c}</span></li>)}
               </ul>
+
+              {/* 🔥 NUEVO: Selector mágico de Categoría Padre */}
+              {faltantes.categorias.length > 0 && (
+                <div className="mt-3 bg-white p-2 border border-amber-200 rounded">
+                  <p className="text-[11px] font-semibold text-amber-900 mb-1">
+                    ¿Deseas que estas nuevas categorías pertenezcan a una Principal? (Opcional)
+                  </p>
+                  <select
+                    className="text-xs w-full p-1.5 border border-amber-300 rounded bg-amber-50/50 text-amber-900 outline-none"
+                    value={categoriaPadreSeleccionada}
+                    onChange={(e) => setCategoriaPadreSeleccionada(e.target.value)}
+                  >
+                    <option value="">-- Crear como Categorías Principales (Sueltas) --</option>
+                    {catActivos.categorias.map(c => (
+                      <option key={c.id} value={c.id}>{c.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className="flex gap-2 pt-2">
-                <Button variant="outline" className="h-8 text-xs bg-white text-amber-700 border-amber-300" onClick={limpiarYSalir}>No, cancelar</Button>
+                <Button variant="outline" className="h-8 text-xs bg-white text-amber-700 border-amber-300" onClick={limpiarYSalir}>Cancelar</Button>
                 <Button className="h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white" onClick={resolverFaltantes} disabled={isResolviendo}>
                   {isResolviendo ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : <PlusCircle className="w-3 h-3 mr-2" />}
                   Sí, crear y continuar
@@ -175,6 +205,7 @@ const BulkImportSheet = ({ isOpen, setIsOpen, categorias, sedes, onImportSuccess
             </div>
           )}
 
+          {/* ✅ TABLA DE PREVISUALIZACIÓN CON CATEGORÍAS */}
           {datosPrevia.length > 0 && !hayConflictos && (
             <div className="space-y-3">
               <h3 className="text-xs font-bold text-green-600 uppercase flex items-center gap-2">
@@ -186,16 +217,21 @@ const BulkImportSheet = ({ isOpen, setIsOpen, categorias, sedes, onImportSuccess
                     <thead className="bg-zinc-50 border-b border-zinc-200 sticky top-0">
                       <tr>
                         <th className="px-3 py-2 font-bold text-zinc-700">Equipo</th>
+                        {/* 🔥 Columna nueva */}
+                        <th className="px-3 py-2 font-bold text-zinc-700">Categoría</th>
                         <th className="px-3 py-2 font-bold text-zinc-700">Sede</th>
                         <th className="px-3 py-2 font-bold text-zinc-700 text-center">Cant.</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
-                      {datosPrevia.slice(0, 10).map((item, idx) => (
+                      {/* Subimos el slice a 20 para que vean más ítems ;) */}
+                      {datosPrevia.slice(0, 20).map((item, idx) => (
                         <tr key={idx} className="hover:bg-zinc-50/50">
                           <td className="px-3 py-2 font-medium text-zinc-900">{item.nombre}</td>
+                          {/* 🔥 Dato nuevo pintado */}
+                          <td className="px-3 py-2 text-zinc-600 text-[10px]">{item.categoriaNombre}</td>
                           <td className="px-3 py-2 text-zinc-500 italic">{item.sedeNombre}</td>
-                          <td className="px-3 py-2 text-center text-zinc-700">{item.cantidad}</td>
+                          <td className="px-3 py-2 text-center font-bold text-zinc-700">{item.cantidad}</td>
                         </tr>
                       ))}
                     </tbody>

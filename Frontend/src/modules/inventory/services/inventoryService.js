@@ -139,7 +139,9 @@ export const inventoryService = {
         cantidad_stock: item.cantidad || 1,
         sede_id: sedeEncontrada.id,
         cat_id: catEncontrada ? catEncontrada.id : null,
-        unidad_medida: 'UNIDAD', // Por defecto para masivos
+        categoria_nombre: item.categoriaNombre || '', 
+        
+        unidad_medida: item.unidadMedida ? item.unidadMedida.toString().toUpperCase() : 'CAJA',
         es_externo: false
       };
     });

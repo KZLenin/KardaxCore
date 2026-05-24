@@ -298,10 +298,50 @@ const exportarExcel = async (filtros, columnasSeleccionadas) => {
   // 4. Generamos el buffer usando el utilitario genérico
   return await generarExcelGenerico(dataFormateada, columnasFinales, 'Reporte_Kardex');
 };
+
+const expandirItemsParaImportacion = (items) => {
+  let itemsExpandidos = [];
+
+  items.forEach((item) => {
+    // 1. Limpiamos: Sacamos categoria_nombre para que no de error en Supabase
+    const { categoria_nombre, ...itemLimpio } = item;
+    
+    const cantidad = Number(item.cantidad_stock || item.cantidad || 1);
+    const unidadLimpia = (item.unidad_medida || '').toString().trim().toUpperCase();
+
+    // 2. LÓGICA PURA: ¿Es una unidad o pieza individual?
+    const esUnidad = ['UNIDAD', 'U', 'PIEZA', 'PZA'].includes(unidadLimpia);
+
+    // Si es unidad y hay más de 1, clonamos las filas para los stickers
+    if (esUnidad && cantidad > 1) {
+      console.log(`✅ Expandiendo Unidad: ${item.nombre} (x${cantidad})`);
+      for (let i = 0; i < cantidad; i++) {
+        itemsExpandidos.push({
+          ...itemLimpio,
+          cantidad_stock: 1, // Cada clon vale 1
+          codigo_barras: itemLimpio.codigo_barras ? `${itemLimpio.codigo_barras}-${i + 1}` : null
+        });
+      }
+    } else {
+      // CAJAS, PAQUETES, KILOS (O unidades sueltas de 1): Entran como bloque
+      console.log(`📦 Guardando en Bloque: ${item.nombre} (${unidadLimpia})`);
+      itemsExpandidos.push({
+        ...itemLimpio,
+        cantidad_stock: cantidad 
+      });
+    }
+  });
+
+  return itemsExpandidos;
+};
+
 const importarMasivo = async (items) => {
   if (!items || items.length === 0) throw new Error("No hay equipos para importar.");
-  // Llamamos a la función que ya tenías viva en el repository
-  return await inventoryRepository.importarItemsMasivo(items);
+  
+  // 🔥 PASAMOS LA DATA POR EL FILTRO ANTES DE MANDAR A SUPABASE
+  const itemsProcesados = expandirItemsParaImportacion(items);
+  
+  return await inventoryRepository.importarItemsMasivo(itemsProcesados);
 };
 
 const obtenerGaleriaImagenes = async () => {
@@ -313,5 +353,5 @@ module.exports = {
   registrarEntrada, registrarCategoria, registrarProveedor, subirImagenEquipo,
   listarCategorias, listarProveedores, listarInventario, obtenerHistorial, obtenerEquipoPorId, listarSedes, obtenerGaleriaImagenes,
   actualizarEquipo, actualizarCategoria, actualizarProveedor, 
-  exportarExcel, importarMasivo
+  exportarExcel, importarMasivo, expandirItemsParaImportacion
 };
