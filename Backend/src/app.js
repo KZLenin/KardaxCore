@@ -23,6 +23,7 @@ const clientsRoutes = require('./modules/clients/client.routes'); // Nueva ruta 
 const dashboardRoutes = require('./modules/dashboard/dashboard.routes'); // Nueva ruta para dashboard
 const sparepartsRoutes = require('./modules/spareparts/spareparts.routes'); // Nueva ruta para repuestos
 const billingRoutes = require('./modules/billing/billing.router'); // Nueva ruta para facturación
+const configurationRoutes = require('./modules/configuration/configuration.routes'); // Nueva ruta para configuración
 
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger-output.json');
@@ -38,8 +39,8 @@ app.use('/api/users', usersRoutes); // Nueva ruta para usuarios
 app.use('/api/clientes', clientsRoutes); // Nueva ruta para clientes
 app.use('/api/dashboard', dashboardRoutes); // Nueva ruta para dashboard
 app.use('/api/spareparts', sparepartsRoutes); // Nueva ruta para repuestos 
-app.use('/api/facturacion', billingRoutes); // Nueva ruta para facturación
-
+app.use('/api/billing', billingRoutes); // Nueva ruta para facturación
+app.use('/api/configuration', configurationRoutes); // Nueva ruta para configuración
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // --- Ruta de salud (Healthcheck) ---

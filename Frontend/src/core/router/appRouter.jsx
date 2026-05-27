@@ -16,6 +16,7 @@ import LocationsView from '../../modules/location/views/LocationsView';
 import UsersView from '../../modules/users/views/UsersView'; 
 import ClientsView from '../../modules/clients/views/ClientsView';
 import BillingView from '../../modules/billing/views/BillingView'; // Nueva vista para facturación
+import ConfigurationView from '../../modules/configuration/views/ConfigurationView'; // Nueva vista para configuración
 
 const AppRouter = () => {
   return (
@@ -44,6 +45,7 @@ const AppRouter = () => {
             <Route path="/users/*" element={<UsersView />} />
             <Route path="/clients/*" element={<ClientsView />} />
             <Route path="/finances/*" element={<BillingView />} /> 
+            <Route path="/settings/*" element={<ConfigurationView />} />
           </Route>
         </Route>
 

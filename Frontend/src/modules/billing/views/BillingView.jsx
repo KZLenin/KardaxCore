@@ -3,7 +3,7 @@ import { Wallet, FileCheck, CircleDollarSign } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import PendientesTable from '../components/PendientesTable';
-// import CarteraTable from '../components/CarteraTable'; // Lo haremos en el siguiente paso
+import CarteraTable from '../components/CarteraTable'; // Lo haremos en el siguiente paso
 
 const BillingView = () => {
   const [activeTab, setActiveTab] = useState("pendientes");
@@ -56,10 +56,7 @@ const BillingView = () => {
 
         {/* CONTENIDO PESTAÑA 2 */}
         <TabsContent value="cartera" className="m-0 outline-none animate-in fade-in-50 duration-500">
-          {/* <CarteraTable /> */}
-          <div className="p-12 text-center text-zinc-500 bg-white border border-zinc-200 rounded-xl shadow-sm">
-            Módulo de Cartera en construcción...
-          </div>
+          <CarteraTable /> 
         </TabsContent>
 
       </Tabs>
