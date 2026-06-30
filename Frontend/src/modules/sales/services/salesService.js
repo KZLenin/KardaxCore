@@ -31,7 +31,7 @@ export const salesService = {
         responseType: 'blob' 
       });
       
-      // SOLO retornamos el archivo crudo. El componente (SalesHistoryTable) se encarga de abrirlo.
+      
       return response.data; 
     } catch (error) {
       throw new Error('Error al generar el PDF de la venta');

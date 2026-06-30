@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, FileText, Tag, Trash2, CheckCircle, ShieldCheck, DollarSign, ScanBarcode, Building2, MapPin, Calculator } from 'lucide-react';
+import { ShoppingCart, FileText, Tag, Trash2, CheckCircle, ShieldCheck, DollarSign, ScanBarcode, Building2, MapPin, Calculator, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
