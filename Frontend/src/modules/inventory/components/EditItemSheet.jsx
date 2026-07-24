@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Box, ScanText, Check, Pencil, Lock, Unlock, X, Archive, MapPin, AlignLeft, History, Printer, Hash, Wrench, ImageIcon, UploadCloud, Images } from "lucide-react";
+import { Loader2, Box, ScanText, Check, Pencil, Lock, Unlock, X, Archive, MapPin, AlignLeft, History, Printer, Hash, Wrench, ImageIcon, UploadCloud, Images, Plus,  } from "lucide-react";
 
+import { movementsService } from '../../movement/services/movementsService';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
@@ -11,8 +12,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch"; 
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 
 import { inventoryService } from '../services/inventoryService';
 import { useToast } from "@/hooks/use-toast";
@@ -54,6 +56,34 @@ const EditItemSheet = ({ item, categorias = [], proveedores = [], clientes = [],
   const watchUnidad = form.watch("unidadMedida");
   const isExterno = form.watch("es_externo");
   const watchCliente = form.watch("clienteId");
+
+  const [isAddingStock, setIsAddingStock] = useState(false);
+  const [stockToAdd, setStockToAdd] = useState(1);
+  const [motivoStock, setMotivoStock] = useState("Ingreso de lote adicional");
+
+  const handleSumarStock = async () => {
+  setIsAddingStock(true);
+  try {
+    // 🔥 Aquí está la corrección: llamamos a .registrar() tal como está en tu servicio
+    await movementsService.registrar({
+      itemId: item.id,
+      tipoMovimiento: "INGRESO",
+      cantidad: Number(stockToAdd),
+      motivo: motivoStock
+    });
+    
+    toast({ title: "Stock actualizado", description: `Se sumaron ${stockToAdd} unidades exitosamente.` });
+    
+    if (onUpdated) onUpdated(); // Refresca la tabla principal
+    
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); 
+    
+  } catch (error) {
+    toast({ title: "Error", description: error.message, variant: "destructive" });
+  } finally {
+    setIsAddingStock(false);
+  }
+};
 
   useEffect(() => {
     if (watchUnidad === 'UNIDAD' || isExterno) {
@@ -506,13 +536,60 @@ const EditItemSheet = ({ item, categorias = [], proveedores = [], clientes = [],
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-zinc-500">Stock Actual</label>
-                    <div className="flex items-center gap-2 bg-zinc-100 border border-zinc-200 px-3 py-2 rounded-md">
-                      <Archive className="w-4 h-4 text-zinc-400" />
-                      <span className="text-sm font-medium text-zinc-900">{item?.stock || 0}</span>
-                      <span className="text-xs text-zinc-500 uppercase">{item?.unidad || 'UNIDAD'}</span>
-                    </div>
-                  </div>
+  <label className="text-xs font-semibold text-zinc-500">Stock Actual</label>
+  <div className="flex items-center gap-2 bg-zinc-100 border border-zinc-200 px-3 py-2 rounded-md justify-between">
+    <div className="flex items-center gap-2">
+      <Archive className="w-4 h-4 text-zinc-400" />
+      <span className="text-sm font-bold text-zinc-900">{item?.stock || 0}</span>
+      <span className="text-xs text-zinc-500 uppercase">{item?.unidad || 'UNIDAD'}</span>
+    </div>
+    
+    {/* 🔥 BOTÓN Y MODAL PARA SUMAR STOCK */}
+    {item?.unidad === 'CAJA' && ( // Opcional: Mostrar solo si es caja o dejarlo libre
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button type="button" variant="outline" size="sm" className="h-6 text-xs bg-white text-blue-600 border-blue-200 hover:bg-blue-50">
+            <Plus className="w-3 h-3 mr-1" /> Sumar
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Ingreso Adicional de Stock</DialogTitle>
+            <DialogDescription>Añade más unidades a este lote/caja. Esto quedará registrado en la bitácora.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Cantidad a ingresar</Label>
+              <Input 
+                type="number" 
+                min="1" 
+                value={stockToAdd} 
+                onChange={(e) => setStockToAdd(e.target.value)} 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Motivo / Proveedor</Label>
+              <Input 
+                value={motivoStock} 
+                onChange={(e) => setMotivoStock(e.target.value)} 
+                placeholder="Ej. Llegó un nuevo lote" 
+              />
+            </div>
+            <Button 
+              type="button" 
+              className="w-full bg-blue-600 hover:bg-blue-700" 
+              onClick={handleSumarStock} 
+              disabled={isAddingStock}
+            >
+              {isAddingStock ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
+              Confirmar Ingreso
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    )}
+  </div>
+</div>
 
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-zinc-500">Sede Registrada</label>

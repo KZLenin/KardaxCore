@@ -17,6 +17,7 @@ import UsersView from '../../modules/users/views/UsersView';
 import ClientsView from '../../modules/clients/views/ClientsView';
 import BillingView from '../../modules/billing/views/BillingView'; // Nueva vista para facturación
 import ConfigurationView from '../../modules/configuration/views/ConfigurationView'; // Nueva vista para configuración
+import QuotesView from '../../modules/quotes/views/QuotesView'; // Nueva vista para cotizaciones
 
 const AppRouter = () => {
   return (
@@ -46,6 +47,7 @@ const AppRouter = () => {
             <Route path="/clients/*" element={<ClientsView />} />
             <Route path="/finances/*" element={<BillingView />} /> 
             <Route path="/settings/*" element={<ConfigurationView />} />
+            <Route path="/quotes/*" element={<QuotesView />} />
           </Route>
         </Route>
 

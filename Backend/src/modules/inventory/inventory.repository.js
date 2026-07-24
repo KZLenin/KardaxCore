@@ -314,9 +314,20 @@ const listarImagenesStorage = async () => {
   return imagenesConUrl;
 };
 
+const verificarDisponibilidadItem = async (id) => {
+  const { data, error } = await supabase
+    .from('inventario')
+    .select('id, nombre, cantidad_stock, estado_operativo')
+    .eq('id', id)
+    .single();
+
+  if (error) throw new Error(`Error al verificar stock: ${error.message}`);
+  return data;
+};
+
 module.exports = {
   crearItemKardex, crearCategoria, crearProveedor, registrarHistorial, subirImagenStorage, registrarMovimiento, listarImagenesStorage,
   obtenerCategorias, obtenerProveedores, obtenerInventario, obtenerHistorialItem, obtenerItemPorId, obtenerSedes,
   actualizarItem, actualizarCategoria, actualizarProveedor, actualizarImagenUrl,
-  importarItemsMasivo, 
+  importarItemsMasivo, verificarDisponibilidadItem,
 };
